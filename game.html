@@ -97,7 +97,7 @@
   const MILESTONE = 15;      // a reward every 15 points
   const MAGNET_FRAMES = 8 * FPS;
 
-  const STATE = { READY: 'ready', PLAY: 'play', OVER: 'over' };
+  const STATE = { READY: 'ready', PLAY: 'play', OVER: 'over', SHOP: 'shop' };
 
   // Shared UI colours (scene colours live in THEMES)
   const C = {
@@ -158,13 +158,22 @@
   ];
   const medalFor = tier => tier > 0 ? MEDALS[Math.min(tier, MEDALS.length) - 1] : null;
 
-  const SKINS = [   // skin i unlocks at milestone tier i (score i × 15)
-    { name: 'CORAL', R: '#FF6B5B', r: '#C8433D', L: '#FFA08F' },
-    { name: 'OCEAN', R: '#4D9BE6', r: '#2F5FB0', L: '#9CD3FF' },
-    { name: 'LIME',  R: '#7ED957', r: '#3E9C35', L: '#C2F59A' },
-    { name: 'ROYAL', R: '#A66BFF', r: '#6B3FC8', L: '#D2B4FF' },
-    { name: 'GHOST', R: '#E4E8FF', r: '#9AA2CC', L: '#FFFFFF' },
+  // Skins 1–4 unlock free at milestones (tier × 15) or can be bought; 5–7 are shop exclusives.
+  const SKINS = [
+    { name: 'CORAL',    R: '#FF6B5B', r: '#C8433D', L: '#FFA08F', price: 0 },
+    { name: 'OCEAN',    R: '#4D9BE6', r: '#2F5FB0', L: '#9CD3FF', price: 60,  tier: 1 },
+    { name: 'LIME',     R: '#7ED957', r: '#3E9C35', L: '#C2F59A', price: 120, tier: 2 },
+    { name: 'ROYAL',    R: '#A66BFF', r: '#6B3FC8', L: '#D2B4FF', price: 200, tier: 3 },
+    { name: 'GHOST',    R: '#E4E8FF', r: '#9AA2CC', L: '#FFFFFF', price: 400, tier: 4 },
+    { name: 'CANDY',    R: '#FF8AC8', r: '#C8508E', L: '#FFC4E4', price: 150 },
+    { name: 'MIDNIGHT', R: '#3A4A8C', r: '#232E5E', L: '#7A8CD8', price: 250 },
+    { name: 'SUNSET',   R: '#FF8A3D', r: '#C8501E', L: '#FFC08A', price: 350 },
   ];
+  const BOOSTS = {
+    shield: { name: 'START SHIELD', vi: 'Khiên khởi đầu', price: 30 },
+    magnet: { name: 'START MAGNET', vi: 'Nam châm khởi đầu', price: 40 },
+  };
+  const MAX_STOCK = 9;
 
   // ───────────────────────── Storage ─────────────────────────
   const store = {
@@ -173,8 +182,15 @@
   };
   let best = store.get('best', 0);
   let gemsTotal = store.get('gems', 0);
-  let unlocked = Math.min(store.get('unlocked', 0), SKINS.length - 1);
-  let skin = Math.min(store.get('skin', 0), unlocked);
+  // Owned skins as a bitmask (migrates the earlier "unlocked up to tier" value)
+  let owned = store.get('owned', -1);
+  if (owned < 0) owned = (1 << (Math.min(store.get('unlocked', 0), 4) + 1)) - 1;
+  owned |= 1;
+  const ownsSkin = i => (owned >> i) & 1;
+  let skin = store.get('skin', 0);
+  if (!SKINS[skin] || !ownsSkin(skin)) skin = 0;
+  const stock = { shield: store.get('shieldStock', 0), magnet: store.get('magnetStock', 0) };
+  const saveStock = () => { store.set('shieldStock', stock.shield); store.set('magnetStock', stock.magnet); };
 
   // ───────────────────────── Canvas ─────────────────────────
   const canvas = document.getElementById('game');
@@ -483,9 +499,10 @@
     gemsRun += bonus;
     shield = true;
     let newSkin = null;
-    if (tier > unlocked && tier < SKINS.length) {
-      unlocked = tier; store.set('unlocked', unlocked);
-      newSkin = SKINS[tier].name;
+    const unlock = SKINS.findIndex(sk => sk.tier === tier);
+    if (unlock > 0 && !ownsSkin(unlock)) {
+      owned |= 1 << unlock; store.set('owned', owned);
+      newSkin = SKINS[unlock].name;
     }
     banner = { tier, t: 170, newSkin, bonus };
     const m = medalFor(tier);
@@ -521,28 +538,110 @@
     if (x > 260 && x < 330) return 1;
     return 0;
   };
+  const ownedList = () => SKINS.map((_, i) => i).filter(ownsSkin);
   function changeSkin(dir) {
-    if (unlocked === 0) return false;
-    skin = (skin + dir + unlocked + 1) % (unlocked + 1);
+    const list = ownedList();
+    if (list.length < 2) return false;
+    const k = list.indexOf(skin);
+    skin = list[(k + dir + list.length) % list.length];
     store.set('skin', skin);
     Sound.skin();
     return true;
   }
 
+  // ── Shop ──
+  const SHOP_ROWS = [
+    ...SKINS.map((sk, i) => ({ kind: 'skin', i })).slice(1),
+    { kind: 'shield' }, { kind: 'magnet' },
+  ];
+  const SHOP_Y0 = 112, ROW_H = 42;
+  const SHOP_BACK = { x: 110, y: 508, w: 180, h: 42 };
+  const READY_SHOP = { x: 130, y: 466, w: 140, h: 40 };
+  const OVER_SHOP = { x: 130, y: 415, w: 140, h: 40 };
+  let shopSel = 0, shopMsg = null;
+  const inRect = (x, y, r) => x !== undefined && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+
+  function openShop() {
+    if (state === STATE.OVER) reset();
+    state = STATE.SHOP; shopMsg = null;
+    Sound.skin();
+  }
+  function closeShop() { state = STATE.READY; Sound.skin(); }
+
+  function rowStatus(row) {
+    if (row.kind === 'skin') {
+      if (!ownsSkin(row.i)) return { label: String(SKINS[row.i].price), price: SKINS[row.i].price };
+      return { label: skin === row.i ? 'IN USE' : 'EQUIP', price: 0, owned: true };
+    }
+    const full = stock[row.kind] >= MAX_STOCK;
+    return { label: full ? 'FULL' : String(BOOSTS[row.kind].price), price: BOOSTS[row.kind].price, full };
+  }
+
+  function buy(idx) {
+    const row = SHOP_ROWS[idx]; if (!row) return;
+    shopSel = idx;
+    const st = rowStatus(row);
+    const say = (text, c) => { shopMsg = { text, t: 90, c, row: idx }; };
+    if (row.kind === 'skin' && st.owned) {
+      skin = row.i; store.set('skin', skin); Sound.skin();
+      say('EQUIPPED · ĐÃ CHỌN', C.cream);
+      return;
+    }
+    if (st.full) { say('STOCK FULL · ĐÃ ĐẦY', T.text); return; }
+    if (gemsTotal < st.price) { say(`NEED ${st.price - gemsTotal} MORE GEMS`, C.coral); Sound.hit(); return; }
+    gemsTotal -= st.price; store.set('gems', gemsTotal);
+    if (row.kind === 'skin') {
+      owned |= 1 << row.i; store.set('owned', owned);
+      skin = row.i; store.set('skin', skin);
+    } else {
+      stock[row.kind]++; saveStock();
+    }
+    Sound.coin(); Sound.power();
+    burst(330, SHOP_Y0 + idx * ROW_H + 20, [C.gem, C.gold, C.cream], 16, 2.4);
+    say('PURCHASED! · ĐÃ MUA', C.gem);
+  }
+
+  function shopTap(x, y) {
+    if (inRect(x, y, SHOP_BACK)) { closeShop(); return; }
+    const idx = Math.floor((y - SHOP_Y0) / ROW_H);
+    if (x >= 20 && x <= 380 && idx >= 0 && idx < SHOP_ROWS.length) buy(idx);
+  }
+
+  function startFlight() {
+    state = STATE.PLAY;
+    if (stock.shield > 0) { stock.shield--; shield = true; }
+    if (stock.magnet > 0) { stock.magnet--; magnet = MAGNET_FRAMES; }
+    saveStock();
+    spawnColumn(W + 40);
+    flap();
+  }
+
+  const overReady = () => overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1;
+
   function press(x, y) {
     Sound.unlock();
-    if (state === STATE.READY) {
+    if (state === STATE.SHOP) {
+      if (x !== undefined) shopTap(x, y); else buy(shopSel);
+    } else if (state === STATE.READY) {
+      if (inRect(x, y, READY_SHOP)) { openShop(); return; }
       if (x !== undefined) { const d = arrowHit(x, y); if (d && changeSkin(d)) return; }
-      state = STATE.PLAY;
-      spawnColumn(W + 40);
-      flap();
+      startFlight();
     } else if (state === STATE.PLAY) {
       flap();
-    } else if (state === STATE.OVER && overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1) {
-      reset();
+    } else if (state === STATE.OVER && overReady()) {
+      if (inRect(x, y, OVER_SHOP)) openShop(); else reset();
     }
   }
   window.addEventListener('keydown', e => {
+    if (state === STATE.SHOP) {
+      if (e.code === 'ArrowDown' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        shopSel = (shopSel + (e.code === 'ArrowDown' ? 1 : -1) + SHOP_ROWS.length) % SHOP_ROWS.length;
+      } else if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (!e.repeat) buy(shopSel); }
+      else if (e.code === 'Escape' || e.code === 'Backspace' || e.code === 'KeyS') { e.preventDefault(); closeShop(); }
+      return;
+    }
+    if (e.code === 'KeyS' && (state === STATE.READY || (state === STATE.OVER && overReady()))) { e.preventDefault(); openShop(); return; }
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') {
       e.preventDefault();
       if (!e.repeat) press();
@@ -605,7 +704,7 @@
       for (const c of clouds) { c.x -= SPEED * 0.15 * c.s; if (c.x < -90) { c.x = W + rand(10, 80); c.y = rand(40, 200); } }
     }
 
-    if (state === STATE.READY) {
+    if (state === STATE.READY || state === STATE.SHOP) {
       bird.y = H * 0.42 + Math.sin(bird.t / 12) * 7;
       bird.rot = 0;
       if (bird.t % 30 === 0) bird.flapTimer = 12;
@@ -662,6 +761,7 @@
     for (const p of particles) { p.x += p.vx; p.y += p.vy; p.vy += p.g || 0; p.life--; }
     particles = particles.filter(p => p.life > 0);
     if (banner && --banner.t <= 0) banner = null;
+    if (shopMsg && --shopMsg.t <= 0) shopMsg = null;
     if (toast && --toast.t <= 0) toast = null;
     if (flash > 0) flash = Math.max(0, flash - 0.06);
     if (scorePulse > 0) scorePulse = Math.max(0, scorePulse - 0.07);
@@ -975,20 +1075,96 @@
     text(T.vi, W / 2, 234, { size: 18, color: T.text, font: FONT_BODY });
 
     // Skin selector
-    const can = unlocked > 0;
+    const list = ownedList(), can = list.length > 1;
     arrow(84, SKIN_Y, -1, can ? C.cream : 'rgba(255,241,214,0.25)');
     arrow(316, SKIN_Y, 1, can ? C.cream : 'rgba(255,241,214,0.25)');
     text(SKINS[skin].name, W / 2, SKIN_Y - 6, { size: 12, color: C.cream });
-    text(can ? `Skin ${skin + 1}/${unlocked + 1} · đổi màu chim` : `Reach ${MILESTONE} to unlock skins`, W / 2, SKIN_Y + 14, { size: 18, color: T.text, font: FONT_BODY });
+    text(can ? `Skin ${list.indexOf(skin) + 1}/${list.length} · đổi màu chim` : `Reach ${MILESTONE} or visit the shop`, W / 2, SKIN_Y + 14, { size: 18, color: T.text, font: FONT_BODY });
 
     if (Math.floor(bird.t / 30) % 2 === 0) {
       text('PRESS SPACE', W / 2, 360, { size: 14 });
       text('/ CLICK TO PLAY', W / 2, 384, { size: 14 });
     }
     text('Nhấn Space / Chạm màn hình để bắt đầu', W / 2, 414, { size: 20, color: T.text, font: FONT_BODY });
-    text(`BEST ${best}`, W / 2 - 56, 456, { size: 12, color: '#FFE3A8' });
-    icon(GEM_IMG, W / 2 + 16, 445);
-    text(String(gemsTotal), W / 2 + 44, 456, { size: 12, align: 'left' });
+    text(`BEST ${best}`, W / 2 - 56, 444, { size: 12, color: '#FFE3A8' });
+    icon(GEM_IMG, W / 2 + 16, 433);
+    text(String(gemsTotal), W / 2 + 44, 444, { size: 12, align: 'left' });
+    shopButton(READY_SHOP);
+    drawStock(15, 66, true);
+  }
+
+  function shopButton(r) {
+    pixelBox(r.x, r.y, r.w, r.h, C.gold, C.outline);
+    icon(GEM_IMG, r.x + 16, r.y + 9, 3);
+    text('SHOP', r.x + r.w / 2 + 14, r.y + 15, { size: 12, color: C.outline, shadow: null });
+    text('Cửa hàng', r.x + r.w / 2 + 14, r.y + 31, { size: 16, color: C.outline, font: FONT_BODY, shadow: null });
+  }
+
+  function shieldIcon(x, y) {
+    x = snap(x); y = snap(y);
+    ctx.fillStyle = C.outline; ctx.fillRect(x, y, 21, 24);
+    ctx.fillStyle = C.shield; ctx.fillRect(x + 3, y + 3, 15, 12);
+    ctx.fillRect(x + 6, y + 15, 9, 3); ctx.fillRect(x + 9, y + 18, 3, 3);
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x + 6, y + 6, 3, 6);
+  }
+
+  // Start-of-flight boosts waiting to be used
+  function drawStock(x, y, vertical = false) {
+    const step = () => { if (vertical) y += 30; else x += 66; };
+    if (stock.shield > 0) { shieldIcon(x, y); text(`×${stock.shield}`, x + 27, y + 12, { size: 10, align: 'left' }); step(); }
+    if (stock.magnet > 0) { icon(MAGNET_IMG, x, y); text(`×${stock.magnet}`, x + 27, y + 12, { size: 10, align: 'left' }); }
+  }
+
+  function drawShop() {
+    ctx.fillStyle = 'rgba(14,10,31,0.72)'; ctx.fillRect(0, 0, W, H);
+    text('SHOP', W / 2, 46, { size: 26, color: C.gold });
+    text('Cửa hàng · tiêu đá quý của bạn', W / 2, 74, { size: 18, color: T.text, font: FONT_BODY });
+    icon(GEM_IMG, 300, 81);
+    text(String(gemsTotal), 328, 92, { size: 12, align: 'left', color: C.gem });
+    drawStock(18, 81);
+
+    SHOP_ROWS.forEach((row, idx) => {
+      const y = SHOP_Y0 + idx * ROW_H;
+      const st = rowStatus(row);
+      const sel = idx === shopSel;
+      pixelBox(21, y, 358, ROW_H - 4, T.panel, sel ? C.gold : 'rgba(201,188,255,0.35)', false);
+      let name, sub;
+      if (row.kind === 'skin') {
+        const sk = SKINS[row.i];
+        icon(SKIN_SPRITES[row.i].frames[1], 30, y + 4, 2);
+        name = sk.name;
+        sub = st.owned ? 'Owned · Đã sở hữu' : sk.tier ? `Free at ${sk.tier * MILESTONE} pts · or buy` : 'Shop exclusive · Độc quyền';
+      } else {
+        if (row.kind === 'shield') shieldIcon(36, y + 7); else icon(MAGNET_IMG, 36, y + 8);
+        name = BOOSTS[row.kind].name;
+        sub = `${BOOSTS[row.kind].vi} · có ${stock[row.kind]}`;
+      }
+      text(name, 78, y + 13, { size: 10, align: 'left', color: C.cream });
+      text(sub, 78, y + 28, { size: 16, align: 'left', color: T.text, font: FONT_BODY, shadow: null });
+
+      const bx = 282, by = y + 5, bw = 88, bh = 28;
+      const afford = st.price === 0 || gemsTotal >= st.price;
+      const fill = st.owned ? (skin === row.i ? 'rgba(201,188,255,0.25)' : T.cap[0]) : st.full ? 'rgba(201,188,255,0.25)' : afford ? C.gold : 'rgba(255,107,91,0.45)';
+      pixelBox(bx, by, bw, bh, fill, C.outline, false);
+      if (st.owned || st.full) {
+        text(st.label, bx + bw / 2, by + 15, { size: 9, color: C.outline, shadow: null });
+      } else {
+        icon(GEM_IMG, bx + 8, by + 4, 3);
+        text(st.label, bx + 34, by + 15, { size: 10, align: 'left', color: C.outline, shadow: null });
+      }
+    });
+
+    if (shopMsg) {
+      const y = SHOP_Y0 + shopMsg.row * ROW_H + 19;
+      ctx.save(); ctx.globalAlpha = Math.min(1, shopMsg.t / 20);
+      pixelBox(60, y - 18, 280, 36, C.outline, shopMsg.c, false);
+      text(shopMsg.text, W / 2, y, { size: 10, color: shopMsg.c, shadow: null });
+      ctx.restore();
+    }
+
+    pixelBox(SHOP_BACK.x, SHOP_BACK.y, SHOP_BACK.w, SHOP_BACK.h, T.cap[0], C.outline);
+    text('BACK', W / 2, SHOP_BACK.y + 15, { size: 12, color: C.outline, shadow: null });
+    text('Quay lại', W / 2, SHOP_BACK.y + 31, { size: 16, color: C.outline, font: FONT_BODY, shadow: null });
   }
 
   function drawOver() {
@@ -1023,13 +1199,18 @@
       text('NEW', W - 93, py + 2, { size: 12, color: C.cream, shadow: null });
     }
 
-    const ready = overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1;
-    if (ready) {
+    if (overReady()) {
       const by = py + 240;
+      if (k === 1) shopButton(OVER_SHOP);
       pixelBox(W / 2 - 96, by, 192, 48, T.cap[0], C.outline);
       text('REPLAY', W / 2, by + 18, { size: 14, color: C.outline, shadow: null });
       text('Chơi lại · cảnh mới', W / 2, by + 36, { size: 18, color: C.outline, font: FONT_BODY, shadow: null });
     }
+  }
+
+  // Purchase sparkles drawn above the shop overlay
+  function drawShopParticles() {
+    for (const p of particles) { ctx.fillStyle = p.c || C.cream; ctx.fillRect(snap(p.x), snap(p.y), p.big ? 6 : 3, p.big ? 6 : 3); }
   }
 
   function render() {
@@ -1048,6 +1229,7 @@
     ctx.drawImage(buf, 0, 0, LW * P, LH * P);
     if (state === STATE.READY) drawReady();
     else if (state === STATE.PLAY) drawHUD();
+    else if (state === STATE.SHOP) { drawShop(); drawShopParticles(); }
     else drawOver();
     if (flash > 0) { ctx.fillStyle = `rgba(255,241,214,${Math.ceil(flash * 3) / 3 * 0.8})`; ctx.fillRect(0, 0, W, H); }
   }
