@@ -5,6 +5,10 @@
   const CFG = window.ECARD_CONFIG || {};
   const $ = s => document.querySelector(s);
   const qp = new URLSearchParams(location.search);
+  // Also accept hash routes (#preview, #demo-tet) for hosts that strip query strings
+  const hash = location.hash.replace(/^#/, '');
+  if (hash === 'preview') qp.set('preview', '1');
+  if (hash.startsWith('demo-')) qp.set('demo', hash.slice(5));
   const music = new window.MQN.MusicBox();
   let fx = null, data = null, L = I18N[detectLang()];
 
@@ -15,7 +19,8 @@
 
   async function load() {
     if (qp.get('preview')) {
-      const raw = localStorage.getItem('mqn-ecard-preview');
+      let raw = (window.name && window.name.startsWith('{')) ? window.name : null;
+      if (!raw) { try { raw = localStorage.getItem('mqn-ecard-preview'); } catch (e) { /* storage blocked */ } }
       if (raw) return Object.assign(JSON.parse(raw), { preview: true });
     }
     const demo = qp.get('demo');

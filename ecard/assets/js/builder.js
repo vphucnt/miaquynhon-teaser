@@ -148,14 +148,13 @@
   $('#previewBtn').addEventListener('click', () => {
     const d = cardData();
     if (!d.message) d.message = (MESSAGES[state.theme][0] || {})[state.lang] || '';
-    try {
-      localStorage.setItem(PREVIEW_KEY, JSON.stringify(d));
-      window.open('card.html?preview=1', '_blank');
-    } catch (e) {
-      // Storage full (very large photo) — preview without the photo
-      localStorage.setItem(PREVIEW_KEY, JSON.stringify(Object.assign(d, { photo: '' })));
-      window.open('card.html?preview=1', '_blank');
+    let json = JSON.stringify(d);
+    try { localStorage.setItem(PREVIEW_KEY, json); } catch (e) {
+      try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(Object.assign({}, d, { photo: '' }))); } catch (e2) { /* storage blocked */ }
     }
+    let w = null;
+    try { w = window.open('card.html?preview=1', '_blank'); } catch (e) { /* popups blocked */ }
+    if (!w) { window.name = json; location.href = 'card.html#preview'; }   // same-tab fallback
   });
 
   $('#form').addEventListener('submit', async e => {
