@@ -36,6 +36,15 @@
     box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
   }
   canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+  #back {
+    position: absolute; top: 2.2%; left: 3.5%;
+    height: 6%; display: flex; align-items: center;
+    padding: 0 3%;
+    border: 1px solid rgba(251, 248, 242, .55); border-radius: 999px;
+    background: rgba(52, 26, 18, .35);
+    color: var(--ivory); text-decoration: none;
+    font-size: clamp(9px, 1.5vh, 13px); letter-spacing: .1em;
+  }
   #mute {
     position: absolute; top: 2.2%; right: 3.5%;
     width: 9%; aspect-ratio: 1;
@@ -51,6 +60,7 @@
 <body>
 <div id="stage">
   <canvas id="game" aria-label="Coastal Flight game"></canvas>
+  <a id="back" href="index.html" aria-label="Back to Mia Quy Nhon">← Mia Quy Nhon</a>
   <button id="mute" type="button" aria-label="Toggle sound">♪</button>
 </div>
 
@@ -221,6 +231,7 @@
   canvas.addEventListener('pointerdown', e => { e.preventDefault(); press(); });
   const muteBtn = document.getElementById('mute');
   muteBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  document.getElementById('back').addEventListener('pointerdown', e => e.stopPropagation());
   muteBtn.addEventListener('click', () => {
     const m = Sound.toggle();
     muteBtn.textContent = m ? '×' : '♪';
