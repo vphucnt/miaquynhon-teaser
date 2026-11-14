@@ -3,19 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Mia Quy Nhon | Coastal Flight — Cánh Én Biển</title>
+<title>Night Glide — Cánh chim đêm</title>
 <style>
   :root {
-    --terracotta: #A8513B;
-    --sand: #EFE4D2;
-    --gold: #C9A56B;
-    --ivory: #FBF8F2;
-    --cocoa: #341A12;
+    --night: #120C2E;
+    --mint: #7EF0C8;
+    --white: #FFFFFF;
+    --outline: #1A1033;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     height: 100%;
-    background: var(--cocoa);
+    background: radial-gradient(circle at 50% 30%, #2A1F5C, var(--night) 70%);
     overflow: hidden;
     touch-action: none;
     -webkit-user-select: none;
@@ -26,32 +25,34 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   }
   #stage {
     position: relative;
     aspect-ratio: 2 / 3;
     height: min(100vh, 150vw);
     max-height: 900px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 0 0 2px rgba(126, 240, 200, .25);
+    border-radius: 6px;
+    overflow: hidden;
   }
   canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
   #back {
     position: absolute; top: 2.2%; left: 3.5%;
     height: 6%; display: flex; align-items: center;
     padding: 0 3%;
-    border: 1px solid rgba(251, 248, 242, .55); border-radius: 999px;
-    background: rgba(52, 26, 18, .35);
-    color: var(--ivory); text-decoration: none;
-    font-size: clamp(9px, 1.5vh, 13px); letter-spacing: .1em;
+    border: 2px solid var(--mint); border-radius: 999px;
+    background: rgba(26, 16, 51, .55);
+    color: var(--white); text-decoration: none;
+    font-size: clamp(9px, 1.5vh, 13px); font-weight: bold; letter-spacing: .06em;
   }
   #mute {
     position: absolute; top: 2.2%; right: 3.5%;
     width: 9%; aspect-ratio: 1;
-    border: 1px solid rgba(251, 248, 242, .55);
+    border: 2px solid var(--mint);
     border-radius: 50%;
-    background: rgba(52, 26, 18, .35);
-    color: var(--ivory);
+    background: rgba(26, 16, 51, .55);
+    color: var(--white);
     font-size: clamp(12px, 2.4vh, 20px);
     cursor: pointer;
   }
@@ -59,8 +60,8 @@
 </head>
 <body>
 <div id="stage">
-  <canvas id="game" aria-label="Coastal Flight game"></canvas>
-  <a id="back" href="index.html" aria-label="Back to Mia Quy Nhon">← Mia Quy Nhon</a>
+  <canvas id="game" aria-label="Night Glide game"></canvas>
+  <a id="back" href="index.html" aria-label="Back">← Back</a>
   <button id="mute" type="button" aria-label="Toggle sound">♪</button>
 </div>
 
@@ -79,20 +80,24 @@
   const FLY_SPEED = -8;
   const MAX_FALL = 11;
 
-  const COL_W = 72;          // column (tower) width
+  const COL_W = 72;          // column (pillar) width
   const GAP = 160;           // blank gap between upper and lower column
   const DISTANCE = 200;      // horizontal distance between consecutive columns
   const SPEED = 2;           // scroll speed (px per frame)
   const GAP_MIN_Y = 70;      // top of gap never higher than this
   const GAP_MAX_Y = GROUND_Y - GAP - 50;
 
-  const COLORS = {
-    terracotta: '#A8513B', terracottaDark: '#7E3A29', terracottaLight: '#C26A50',
-    sand: '#EFE4D2', gold: '#C9A56B', ivory: '#FBF8F2', cocoa: '#341A12',
+  const C = {
+    skyTop: '#1B1442', skyMid: '#3A2A78', skyLow: '#7A4A9E',
+    moon: '#FFE3A8', hillFar: '#2A1F5C', hillNear: '#1E1648',
+    mint: '#3FD9A8', mintLight: '#7EF0C8', mintDark: '#1C8F78', glow: '#7EF0C8',
+    coral: '#FF7A6B', coralLight: '#FFA48F', coralDark: '#E0524A', beak: '#FFC857',
+    cream: '#FFF3DD', outline: '#1A1033', white: '#FFFFFF', lilac: '#C9BCFF',
+    ground: '#241A4E', groundStripe: '#33266B', panel: 'rgba(36,26,78,0.94)',
   };
 
   const STATE = { READY: 'ready', PLAY: 'play', OVER: 'over' };
-  const HS_KEY = 'miaqn-coastal-flight-best';
+  const HS_KEY = 'night-glide-best';
 
   // ───────────────────────── Canvas ─────────────────────────
   const canvas = document.getElementById('game');
@@ -159,7 +164,7 @@
   const clouds = Array.from({ length: 5 }, (_, i) => ({
     x: i * 110 + rand(0, 60), y: rand(40, 200), s: rand(0.6, 1.2),
   }));
-  const hillPts = (() => {          // seamless distant headland silhouette, 800px wide
+  const hillPts = (() => {          // seamless distant ridge silhouette, 800px wide
     const pts = [];
     for (let x = 0; x <= 800; x += 40) pts.push(GROUND_Y - 120 + Math.sin(x / 800 * Math.PI * 4) * 22 + Math.sin(x / 800 * Math.PI * 10) * 9);
     return pts;
@@ -311,141 +316,140 @@
   }
 
   // ───────────────────────── Drawing ─────────────────────────
+  const FONT = '"Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif';
+
+  const stars = Array.from({ length: 46 }, () => ({
+    x: Math.random() * W, y: Math.random() * (GROUND_Y - 170), r: rand(0.6, 1.8), p: rand(0, Math.PI * 2),
+  }));
+
   function drawSky() {
     const g = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    g.addColorStop(0, '#F3D9B8');
-    g.addColorStop(0.55, '#F6E6CF');
-    g.addColorStop(1, '#FBF1E1');
+    g.addColorStop(0, C.skyTop);
+    g.addColorStop(0.6, C.skyMid);
+    g.addColorStop(1, C.skyLow);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, GROUND_Y);
 
-    // Low sun
-    const sx = 300 - bgOffset * 0.2, sy = 170;
-    const sg = ctx.createRadialGradient(sx, sy, 6, sx, sy, 90);
-    sg.addColorStop(0, 'rgba(251,248,242,0.95)');
-    sg.addColorStop(0.35, 'rgba(232,186,130,0.45)');
-    sg.addColorStop(1, 'rgba(232,186,130,0)');
-    ctx.fillStyle = sg;
-    ctx.fillRect(sx - 90, sy - 90, 180, 180);
-    ctx.fillStyle = '#F7E9D2';
-    ctx.beginPath(); ctx.arc(sx, sy, 26, 0, Math.PI * 2); ctx.fill();
+    // Twinkling stars
+    for (const s of stars) {
+      const x = ((s.x - bgOffset * 0.5) % W + W) % W;
+      ctx.fillStyle = `rgba(255,247,230,${0.45 + 0.4 * Math.sin(bird.t / 25 + s.p)})`;
+      ctx.beginPath(); ctx.arc(x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    }
 
-    // Clouds
-    ctx.fillStyle = 'rgba(251,248,242,0.85)';
+    // Moon with glow
+    const mx = 335 - bgOffset * 0.2, my = 92;
+    const mg = ctx.createRadialGradient(mx, my, 10, mx, my, 95);
+    mg.addColorStop(0, 'rgba(255,233,190,0.45)');
+    mg.addColorStop(1, 'rgba(255,233,190,0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(mx - 95, my - 95, 190, 190);
+    ctx.fillStyle = C.moon;
+    ctx.beginPath(); ctx.arc(mx, my, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(230,196,140,0.55)';
+    ctx.beginPath(); ctx.arc(mx - 9, my - 6, 5, 0, Math.PI * 2); ctx.arc(mx + 8, my + 9, 3.5, 0, Math.PI * 2); ctx.fill();
+
+    // Drifting night clouds
+    ctx.fillStyle = 'rgba(138,120,200,0.32)';
     for (const c of clouds) {
       ctx.save(); ctx.translate(c.x, c.y); ctx.scale(c.s, c.s);
       ctx.beginPath();
-      ctx.ellipse(0, 0, 34, 10, 0, 0, Math.PI * 2);
-      ctx.ellipse(-14, -6, 16, 10, 0, 0, Math.PI * 2);
-      ctx.ellipse(10, -9, 18, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 36, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(-12, -6, 16, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(12, -8, 18, 11, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
   }
 
-  function drawHeadland() {
-    ctx.fillStyle = 'rgba(168,81,59,0.28)';
+  function drawHills() {
+    // Far ridge
+    ctx.fillStyle = C.hillFar;
     for (const shift of [0, 800]) {
       ctx.beginPath();
       ctx.moveTo(-hillOffset + shift, GROUND_Y);
       hillPts.forEach((y, i) => ctx.lineTo(i * 40 - hillOffset + shift, y));
       ctx.lineTo(800 - hillOffset + shift, GROUND_Y);
-      ctx.closePath();
-      ctx.fill();
+      ctx.closePath(); ctx.fill();
     }
-    // Sea band
-    const sg = ctx.createLinearGradient(0, GROUND_Y - 62, 0, GROUND_Y);
-    sg.addColorStop(0, '#9FB8B2');
-    sg.addColorStop(1, '#6F948F');
-    ctx.fillStyle = sg;
-    ctx.fillRect(0, GROUND_Y - 62, W, 62);
-    // Glints
-    ctx.strokeStyle = 'rgba(251,248,242,0.55)';
-    ctx.lineWidth = 1.5;
-    for (let row = 0; row < 4; row++) {
-      const y = GROUND_Y - 52 + row * 13;
-      const off = (seaOffset * (1 + row * 0.25)) % 40;
-      ctx.beginPath();
-      for (let x = -40 + (row % 2) * 20; x < W + 40; x += 40) {
-        ctx.moveTo(x - off, y); ctx.lineTo(x - off + 12 + row * 2, y);
-      }
-      ctx.stroke();
+    // Near rolling hills (faster layer)
+    ctx.fillStyle = C.hillNear;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    for (let x = 0; x <= W; x += 10) {
+      const wx = x + seaOffset * 10;
+      ctx.lineTo(x, GROUND_Y - 34 - Math.sin(wx / 70) * 12 - Math.sin(wx / 23) * 3);
     }
+    ctx.lineTo(W, GROUND_Y); ctx.closePath(); ctx.fill();
   }
 
-  // Columns are drawn as sandstone towers inspired by the region's coastal heritage.
-  function drawTower(x, top, bottom, capAtBottom) {
+  function drawPillar(x, top, bottom, capAtBottom) {
     const h = bottom - top;
     if (h <= 0) return;
+    // Body
     const g = ctx.createLinearGradient(x, 0, x + COL_W, 0);
-    g.addColorStop(0, COLORS.terracottaDark);
-    g.addColorStop(0.35, COLORS.terracottaLight);
-    g.addColorStop(1, COLORS.terracottaDark);
+    g.addColorStop(0, C.mintDark);
+    g.addColorStop(0.3, C.mint);
+    g.addColorStop(0.55, C.mintLight);
+    g.addColorStop(1, C.mintDark);
     ctx.fillStyle = g;
     ctx.fillRect(x, top, COL_W, h);
 
-    // Brick courses
-    ctx.strokeStyle = 'rgba(52,26,18,0.22)';
-    ctx.lineWidth = 1;
+    // Facet lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    const start = capAtBottom ? bottom : top;
-    const dir = capAtBottom ? -1 : 1;
-    for (let i = 0, y = start; i < 200 && (dir > 0 ? y < bottom : y > top); i++, y += dir * 14) {
-      ctx.moveTo(x, y); ctx.lineTo(x + COL_W, y);
-      const bx = x + ((i % 2) ? 18 : 36);
-      ctx.moveTo(bx, y); ctx.lineTo(bx, y + dir * 14);
-    }
+    ctx.moveTo(x + 22, top); ctx.lineTo(x + 22, bottom);
+    ctx.moveTo(x + 50, top); ctx.lineTo(x + 50, bottom);
     ctx.stroke();
+    ctx.strokeStyle = 'rgba(20,10,50,0.35)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, top, COL_W - 2, h);
 
-    // Pilaster detail
-    ctx.fillStyle = 'rgba(201,165,107,0.35)';
-    ctx.fillRect(x + 10, top, 4, h);
-    ctx.fillRect(x + COL_W - 14, top, 4, h);
-
-    // Stepped capital at the gap edge
-    const capY = capAtBottom ? bottom : top;
-    const s = capAtBottom ? -1 : 1;
-    ctx.fillStyle = COLORS.gold;
-    ctx.fillRect(x - 6, capAtBottom ? capY - 12 : capY, COL_W + 12, 12);
-    ctx.fillStyle = '#B48E56';
-    ctx.fillRect(x - 3, capAtBottom ? capY - 22 : capY + 12, COL_W + 6, 10);
-    ctx.fillStyle = 'rgba(251,248,242,0.35)';
-    ctx.fillRect(x - 6, capAtBottom ? capY - 12 : capY, COL_W + 12, 2);
-    ctx.strokeStyle = COLORS.cocoa; ctx.globalAlpha = 0.35;
-    ctx.strokeRect(x - 6 + 0.5, (capAtBottom ? capY - 12 : capY) + 0.5, COL_W + 11, 11);
-    ctx.globalAlpha = 1;
-    void s;
+    // Glowing rounded cap at the gap edge
+    const capH = 18, capX = x - 6, capW = COL_W + 12;
+    const capY = capAtBottom ? bottom - capH : top;
+    ctx.save();
+    ctx.shadowColor = C.glow; ctx.shadowBlur = 14;
+    ctx.fillStyle = C.mintLight;
+    roundRect(capX, capY, capW, capH, 6); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(20,10,50,0.45)'; ctx.lineWidth = 2;
+    roundRect(capX, capY, capW, capH, 6); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillRect(capX + 8, capY + 4, capW - 30, 3);
   }
 
   function drawColumns() {
     for (const c of columns) {
-      drawTower(c.x, -20, c.gapY, true);
-      drawTower(c.x, c.gapY + GAP, GROUND_Y, false);
+      drawPillar(c.x, -20, c.gapY, true);
+      drawPillar(c.x, c.gapY + GAP, GROUND_Y, false);
     }
   }
 
   function drawGround() {
-    ctx.fillStyle = COLORS.sand;
+    ctx.fillStyle = C.ground;
     ctx.fillRect(0, GROUND_Y, W, GROUND_H);
-    // Foam line
-    ctx.fillStyle = COLORS.ivory;
-    ctx.fillRect(0, GROUND_Y, W, 5);
-    // Scrolling patterned border
-    ctx.fillStyle = COLORS.gold;
-    ctx.fillRect(0, GROUND_Y + 5, W, 16);
-    ctx.fillStyle = COLORS.terracotta;
+    // Glowing edge
+    ctx.fillStyle = C.mintLight;
+    ctx.fillRect(0, GROUND_Y, W, 4);
+    // Scrolling chevron track
+    ctx.fillStyle = C.groundStripe;
+    ctx.fillRect(0, GROUND_Y + 4, W, 18);
+    ctx.fillStyle = C.coral;
     for (let x = -groundOffset; x < W + 32; x += 32) {
       ctx.beginPath();
-      ctx.moveTo(x, GROUND_Y + 21); ctx.lineTo(x + 8, GROUND_Y + 9); ctx.lineTo(x + 16, GROUND_Y + 21);
+      ctx.moveTo(x, GROUND_Y + 7); ctx.lineTo(x + 10, GROUND_Y + 7);
+      ctx.lineTo(x + 18, GROUND_Y + 13); ctx.lineTo(x + 10, GROUND_Y + 19);
+      ctx.lineTo(x, GROUND_Y + 19); ctx.lineTo(x + 8, GROUND_Y + 13);
       ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.arc(x + 24, GROUND_Y + 13, 2.5, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = 'rgba(52,26,18,0.25)';
-    ctx.fillRect(0, GROUND_Y + 21, W, 2);
-    // Sand speckles
-    ctx.fillStyle = 'rgba(168,81,59,0.18)';
-    for (let x = -groundOffset * 1; x < W + 32; x += 16) {
-      ctx.fillRect(x + 4, GROUND_Y + 40 + ((x / 16) % 3) * 12, 3, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(0, GROUND_Y + 22, W, 2);
+    // Dots
+    ctx.fillStyle = 'rgba(126,240,200,0.18)';
+    for (let x = -groundOffset; x < W + 32; x += 16) {
+      ctx.fillRect(x + 4, GROUND_Y + 42 + (Math.abs(Math.round(x / 16)) % 3) * 12, 3, 3);
     }
   }
 
@@ -455,58 +459,66 @@
     ctx.rotate(bird.rot);
     const w = BIRD_W, h = BIRD_H;
 
-    // Tail
-    ctx.fillStyle = COLORS.cocoa;
+    // Tail feathers
+    ctx.fillStyle = C.coralDark;
     ctx.beginPath();
-    ctx.moveTo(-w * 0.28, 2);
-    ctx.lineTo(-w * 0.5, -6);
-    ctx.lineTo(-w * 0.44, 4);
-    ctx.lineTo(-w * 0.52, 12);
+    ctx.moveTo(-w * 0.26, 0);
+    ctx.lineTo(-w * 0.5, -10);
+    ctx.lineTo(-w * 0.42, 2);
+    ctx.lineTo(-w * 0.5, 12);
     ctx.closePath(); ctx.fill();
 
-    // Body
-    const bg = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
-    bg.addColorStop(0, '#5A3326');
-    bg.addColorStop(0.5, COLORS.terracotta);
-    bg.addColorStop(0.51, COLORS.ivory);
-    bg.addColorStop(1, COLORS.sand);
+    // Round body
+    const bg = ctx.createRadialGradient(-4, -8, 4, 0, 0, w * 0.45);
+    bg.addColorStop(0, C.coralLight);
+    bg.addColorStop(1, C.coral);
     ctx.fillStyle = bg;
-    ctx.beginPath();
-    ctx.ellipse(0, 2, w * 0.36, h * 0.33, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(52,26,18,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 1, w * 0.38, h * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
 
-    // Head
-    ctx.fillStyle = '#5A3326';
-    ctx.beginPath(); ctx.arc(w * 0.26, -5, h * 0.22, 0, Math.PI * 2); ctx.fill();
-    ctx.stroke();
-    // Eye
-    ctx.fillStyle = COLORS.ivory;
-    ctx.beginPath(); ctx.arc(w * 0.31, -8, 4.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = COLORS.cocoa;
-    ctx.beginPath(); ctx.arc(w * 0.325, -8, 2, 0, Math.PI * 2); ctx.fill();
-    // Beak
-    ctx.fillStyle = COLORS.gold;
+    // Belly
+    ctx.fillStyle = C.cream;
+    ctx.beginPath(); ctx.ellipse(4, 8, w * 0.22, h * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Crest
+    ctx.fillStyle = C.coralDark;
     ctx.beginPath();
-    ctx.moveTo(w * 0.4, -6); ctx.lineTo(w * 0.52, -2); ctx.lineTo(w * 0.4, 1);
+    ctx.moveTo(2, -h * 0.36); ctx.quadraticCurveTo(0, -h * 0.62, 10, -h * 0.56);
+    ctx.quadraticCurveTo(8, -h * 0.44, 12, -h * 0.34); ctx.closePath(); ctx.fill();
+
+    // Big eye
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(w * 0.17, -6, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = C.outline;
+    const blink = state !== STATE.OVER && bird.t % 180 < 6;
+    if (blink) ctx.fillRect(w * 0.17 - 5, -6.5, 10, 2);
+    else if (state === STATE.OVER) {
+      ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(w * 0.17 - 3.5, -9.5); ctx.lineTo(w * 0.17 + 3.5, -2.5);
+      ctx.moveTo(w * 0.17 + 3.5, -9.5); ctx.lineTo(w * 0.17 - 3.5, -2.5); ctx.stroke();
+    } else { ctx.beginPath(); ctx.arc(w * 0.19, -6, 3.2, 0, Math.PI * 2); ctx.fill(); }
+
+    // Beak
+    ctx.fillStyle = C.beak;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.3, -2); ctx.lineTo(w * 0.5, 2); ctx.lineTo(w * 0.3, 7);
     ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.5; ctx.stroke();
 
     // Wing — 3 frames: up, mid (glide/idle), down
     const angles = [-0.95, -0.15, 0.6];
     const a = state === STATE.OVER ? 0.3 : angles[bird.frame];
     ctx.save();
-    ctx.translate(-2, -1);
+    ctx.translate(-4, 2);
     ctx.rotate(a);
-    const wg = ctx.createLinearGradient(-w * 0.3, 0, w * 0.1, 0);
-    wg.addColorStop(0, COLORS.cocoa);
-    wg.addColorStop(1, COLORS.terracottaDark);
-    ctx.fillStyle = wg;
+    ctx.fillStyle = C.cream;
     ctx.beginPath();
     ctx.moveTo(6, 0);
-    ctx.quadraticCurveTo(-6, -h * 0.42, -w * 0.36, -h * 0.18);
-    ctx.quadraticCurveTo(-w * 0.18, -2, 6, 0);
+    ctx.quadraticCurveTo(-4, -h * 0.42, -w * 0.34, -h * 0.16);
+    ctx.quadraticCurveTo(-w * 0.16, 2, 6, 0);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(201,165,107,0.8)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = C.outline; ctx.lineWidth = 1.8; ctx.stroke();
     ctx.restore();
 
     ctx.restore();
@@ -514,19 +526,19 @@
 
   function drawParticles() {
     for (const p of particles) {
-      ctx.fillStyle = `rgba(251,248,242,${(p.life / p.max) * 0.8})`;
+      ctx.fillStyle = `rgba(126,240,200,${(p.life / p.max) * 0.85})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  function text(str, x, y, { size = 20, color = COLORS.ivory, align = 'center', weight = '', font = 'Georgia, serif', stroke = null, alpha = 1, spacing = 0 } = {}) {
+  function text(str, x, y, { size = 20, color = C.white, align = 'center', weight = '', stroke = null, alpha = 1, spacing = 0 } = {}) {
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.font = `${weight} ${size}px ${font}`.trim();
+    ctx.font = `${weight} ${size}px ${FONT}`.trim();
     ctx.textAlign = align;
     ctx.textBaseline = 'middle';
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${spacing}px`;
-    if (stroke) { ctx.lineJoin = 'round'; ctx.lineWidth = size * 0.16; ctx.strokeStyle = stroke; ctx.strokeText(str, x, y); }
+    if (stroke) { ctx.lineJoin = 'round'; ctx.lineWidth = size * 0.18; ctx.strokeStyle = stroke; ctx.strokeText(str, x, y); }
     ctx.fillStyle = color;
     ctx.fillText(str, x, y);
     ctx.restore();
@@ -544,21 +556,22 @@
 
   function drawUI() {
     if (state === STATE.READY) {
-      text('MIA QUY NHON', W / 2, 92, { size: 13, color: COLORS.terracotta, spacing: 5 });
-      text('Coastal Flight', W / 2, 128, { size: 38, color: COLORS.cocoa, font: 'Georgia, serif', weight: 'italic' });
-      text('Cánh Én Biển', W / 2, 164, { size: 17, color: COLORS.terracottaDark, weight: 'italic' });
+      const bob = Math.sin(bird.t / 20) * 3;
+      text('NIGHT', W / 2, 108 + bob, { size: 46, color: C.mintLight, stroke: C.outline, weight: 'bold', spacing: 4 });
+      text('GLIDE', W / 2, 156 + bob, { size: 46, color: C.coral, stroke: C.outline, weight: 'bold', spacing: 4 });
+      text('Cánh chim đêm', W / 2, 196, { size: 15, color: C.lilac, spacing: 1 });
 
       const blink = 0.55 + 0.45 * Math.sin(bird.t / 14);
-      text('Press Space / Click to Play', W / 2, 372, { size: 18, color: COLORS.cocoa, alpha: blink });
-      text('Nhấn Space / Chạm màn hình để bắt đầu', W / 2, 398, { size: 13, color: COLORS.terracottaDark, alpha: blink });
-      if (best > 0) text(`Best · Kỷ lục  ${best}`, W / 2, 446, { size: 14, color: COLORS.terracotta, spacing: 1 });
+      text('Press Space / Click to Play', W / 2, 372, { size: 18, color: C.white, weight: 'bold', stroke: C.outline, alpha: blink });
+      text('Nhấn Space / Chạm màn hình để bắt đầu', W / 2, 400, { size: 13, color: C.lilac, alpha: blink });
+      if (best > 0) text(`★ Best · Kỷ lục  ${best}`, W / 2, 446, { size: 15, color: C.moon, weight: 'bold' });
       return;
     }
 
     if (state === STATE.PLAY) {
       const s = 1 + scorePulse * 0.25;
       ctx.save(); ctx.translate(W / 2, 64); ctx.scale(s, s);
-      text(String(score), 0, 0, { size: 52, color: COLORS.ivory, stroke: COLORS.cocoa, weight: 'bold' });
+      text(String(score), 0, 0, { size: 54, color: C.white, stroke: C.outline, weight: 'bold' });
       ctx.restore();
       return;
     }
@@ -569,24 +582,23 @@
     const py = 150 + (1 - ease) * 60;
     ctx.save();
     ctx.globalAlpha = ease;
-    text('Game Over', W / 2, py - 40, { size: 40, color: COLORS.ivory, stroke: COLORS.cocoa, weight: 'italic' });
+    text('GAME OVER', W / 2, py - 40, { size: 40, color: C.coral, stroke: C.outline, weight: 'bold', spacing: 2 });
 
-    ctx.fillStyle = 'rgba(251,248,242,0.96)';
-    roundRect(60, py, W - 120, 170, 14); ctx.fill();
-    ctx.strokeStyle = COLORS.gold; ctx.lineWidth = 2; ctx.stroke();
-    roundRect(66, py + 6, W - 132, 158, 10);
-    ctx.strokeStyle = 'rgba(201,165,107,0.45)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = C.panel;
+    roundRect(60, py, W - 120, 170, 18); ctx.fill();
+    ctx.strokeStyle = C.mintLight; ctx.lineWidth = 3; ctx.stroke();
 
-    text('SCORE · ĐIỂM', W / 2, py + 28, { size: 11, color: COLORS.terracotta, spacing: 3 });
-    text(String(score), W / 2, py + 62, { size: 40, color: COLORS.cocoa, weight: 'bold' });
-    ctx.fillStyle = 'rgba(201,165,107,0.6)';
-    ctx.fillRect(W / 2 - 50, py + 90, 100, 1);
-    text('HIGH SCORE · KỶ LỤC', W / 2, py + 110, { size: 11, color: COLORS.terracotta, spacing: 3 });
-    text(String(best), W / 2, py + 140, { size: 26, color: COLORS.cocoa });
+    text('SCORE · ĐIỂM', W / 2, py + 28, { size: 12, color: C.lilac, weight: 'bold', spacing: 2 });
+    text(String(score), W / 2, py + 62, { size: 42, color: C.white, weight: 'bold' });
+    ctx.fillStyle = 'rgba(184,170,240,0.35)';
+    ctx.fillRect(W / 2 - 50, py + 90, 100, 2);
+    text('HIGH SCORE · KỶ LỤC', W / 2, py + 110, { size: 12, color: C.lilac, weight: 'bold', spacing: 2 });
+    text(String(best), W / 2, py + 140, { size: 28, color: C.moon, weight: 'bold' });
     if (isNewBest && score > 0) {
       ctx.save(); ctx.translate(W - 82, py + 18); ctx.rotate(0.25);
-      ctx.fillStyle = COLORS.terracotta; roundRect(-30, -11, 60, 22, 11); ctx.fill();
-      text('NEW', 0, 1, { size: 11, color: COLORS.ivory, spacing: 2 });
+      ctx.fillStyle = C.coral; roundRect(-30, -12, 60, 24, 12); ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+      text('NEW!', 0, 1, { size: 12, color: C.white, weight: 'bold', spacing: 1 });
       ctx.restore();
     }
     ctx.restore();
@@ -595,24 +607,24 @@
     const ready = overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1;
     if (ready) {
       const by = py + 196;
-      ctx.fillStyle = COLORS.terracotta;
-      roundRect(W / 2 - 80, by, 160, 44, 22); ctx.fill();
-      ctx.strokeStyle = COLORS.gold; ctx.lineWidth = 1.5; ctx.stroke();
-      text('↻  Replay · Chơi lại', W / 2, by + 22, { size: 16, color: COLORS.ivory });
-      text('Space / Click', W / 2, by + 62, { size: 12, color: COLORS.cocoa, alpha: 0.7 });
+      ctx.fillStyle = C.mint;
+      roundRect(W / 2 - 84, by, 168, 46, 23); ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 3; ctx.stroke();
+      text('↻  Replay · Chơi lại', W / 2, by + 23, { size: 16, color: C.outline, weight: 'bold' });
+      text('Space / Click', W / 2, by + 64, { size: 12, color: C.lilac });
     }
   }
 
   function render() {
     ctx.clearRect(0, 0, W, H);
     drawSky();
-    drawHeadland();
+    drawHills();
     drawColumns();
     drawGround();
     drawParticles();
     drawBird();
     drawUI();
-    if (flash > 0) { ctx.fillStyle = `rgba(251,248,242,${flash * 0.8})`; ctx.fillRect(0, 0, W, H); }
+    if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.8})`; ctx.fillRect(0, 0, W, H); }
   }
 
   // ───────────────────────── Loop ─────────────────────────
