@@ -91,31 +91,99 @@
   const GAP = 160;           // blank gap between upper and lower column
   const DISTANCE = 200;      // horizontal distance between consecutive columns
   const SPEED = 2;           // scroll speed (px per frame)
-  const GAP_MIN_Y = 70;      // top of gap never higher than this
+  const GAP_MIN_Y = 70;
   const GAP_MAX_Y = GROUND_Y - GAP - 50;
 
-  const C = {
-    sky1: '#120B2B', sky2: '#1F1248', sky3: '#33196A', sky4: '#55247E', sky5: '#86357F',
-    star: '#FFF1D6', moon: '#FFE3A8', moonDark: '#E0B872', cloud: '#6A3F94', cloudShade: '#4A2A78',
-    hillFar: '#2A1856', hillFarTop: '#4A2F86', hillNear: '#170E36',
-    stone: '#8C8FB8', stoneLight: '#C4C8E8', stoneDark: '#5A5C8A', mortar: '#6B6E9C',
-    mint: '#3FD9A8', mintLight: '#7EF0C8', mintDark: '#1C8F78',
-    coral: '#FF6B5B', coralLight: '#FFA08F', coralDark: '#C8433D', beak: '#FFC23D',
-    cream: '#FFF1D6', outline: '#0E0A1F', lilac: '#C9BCFF',
-    ground: '#2A1A4F', groundTile: '#33226A', panel: '#22164A',
-  };
+  const MILESTONE = 15;      // a reward every 15 points
+  const MAGNET_FRAMES = 8 * FPS;
 
   const STATE = { READY: 'ready', PLAY: 'play', OVER: 'over' };
-  const HS_KEY = 'night-glide-best';
+
+  // Shared UI colours (scene colours live in THEMES)
+  const C = {
+    coral: '#FF6B5B', cream: '#FFF1D6', outline: '#0E0A1F', lilac: '#C9BCFF',
+    gem: '#4DF2D0', gemLight: '#E8FFF6', gemDark: '#1C9E8A',
+    gold: '#FFC93D', goldLight: '#FFF0A8', goldDark: '#C98A12',
+    shield: '#7FD8FF', magnet: '#FF4D5E',
+  };
+
+  // ───────────────────────── Scenes (one is picked for every new flight) ─────────────────────────
+  const THEMES = [
+    { id: 'night', name: 'STARRY NIGHT', vi: 'Đêm đầy sao',
+      sky: ['#120B2B', '#1F1248', '#33196A', '#55247E', '#86357F'], stars: '#FFF1D6',
+      cel: { type: 'moon', c: '#FFE3A8', d: '#E0B872', x: 112, y: 74, r: 10 },
+      cloud: ['#6A3F94', '#4A2A78'], ridge: 'hills', far: ['#2A1856', '#4A2F86'], near: '#170E36',
+      stone: ['#8C8FB8', '#C4C8E8', '#5A5C8A', '#6B6E9C'], cap: ['#3FD9A8', '#7EF0C8', '#1C8F78'],
+      ground: ['#2A1A4F', '#33226A'], edge: ['#7EF0C8', '#3FD9A8', '#1C8F78'],
+      weather: 'none', panel: '#22164A', text: '#C9BCFF' },
+    { id: 'desert', name: 'DESERT DUSK', vi: 'Hoàng hôn sa mạc',
+      sky: ['#2B1438', '#5C1F45', '#A33A4A', '#E0663F', '#F7A64A'], stars: '#FFD9B0',
+      cel: { type: 'sun', c: '#FFE07A', d: '#F7A64A', x: 36, y: 128, r: 17 },
+      cloud: ['#C8505A', '#8E2F4A'], ridge: 'dunes', far: ['#B5483F', '#D9674A'], near: '#6E2335',
+      stone: ['#D9A066', '#F2CE8E', '#A86B3C', '#B87A48'], cap: ['#2EC4B6', '#8FF0E4', '#178A80'],
+      ground: ['#C98A4B', '#B37840'], edge: ['#F2CE8E', '#D9A066', '#8C5A2E'],
+      weather: 'dust', panel: '#4A1C3A', text: '#FFD3A8' },
+    { id: 'snow', name: 'SNOWY NIGHT', vi: 'Đêm tuyết',
+      sky: ['#07142B', '#0D2347', '#163A63', '#21557F', '#3B7699'], stars: '#E6F4FF',
+      cel: { type: 'moon', c: '#EAF6FF', d: '#B8D4EA', x: 112, y: 70, r: 9 },
+      cloud: ['#2E5A80', '#1F4466'], ridge: 'peaks', far: ['#1B3B5E', '#E6F4FF'], near: '#0E2440',
+      stone: ['#9FD3E8', '#E2F6FF', '#5E9AB8', '#7DB8D2'], cap: ['#E6F4FF', '#FFFFFF', '#9DB8D2'],
+      ground: ['#DCE9F6', '#C4D8EC'], edge: ['#FFFFFF', '#E6F0FA', '#9DB8D2'],
+      weather: 'snow', panel: '#0F2A4A', text: '#BFE3FF' },
+    { id: 'neon', name: 'NEON CITY', vi: 'Phố đêm neon',
+      sky: ['#0A0614', '#160A2A', '#2A0E40', '#47115A', '#6E1466'], stars: null,
+      cel: { type: 'crescent', c: '#FF9ED2', d: '#FF5FA2', x: 112, y: 74, r: 9 },
+      cloud: ['#3A1450', '#26103A'], ridge: 'city', far: ['#2A1240', '#3D1A5C'], near: '#120820',
+      windows: ['#FFE066', '#4DF2FF', '#FF5FA2'],
+      stone: ['#5B5F7A', '#8A8FB0', '#3A3D52', '#4A4D66'], cap: ['#FF3FA4', '#FF9ED2', '#B0207A'],
+      ground: ['#1A1028', '#24163A'], edge: ['#4DF2FF', '#1FB8D0', '#0E6A80'],
+      weather: 'rain', panel: '#1A0C2E', text: '#FF9ED2' },
+    { id: 'forest', name: 'FIREFLY FOREST', vi: 'Rừng đom đóm',
+      sky: ['#06140F', '#0B231A', '#123527', '#1C4A35', '#2E6247'], stars: '#E8FFD6',
+      cel: { type: 'crescent', c: '#F5F0C8', d: '#C8C08A', x: 112, y: 74, r: 9 },
+      cloud: ['#24503C', '#173A2B'], ridge: 'pines', far: ['#143A2A', '#1F5039'], near: '#081A12',
+      stone: ['#8A6A4A', '#B8936A', '#5C4430', '#6E5238'], cap: ['#7BC950', '#B8F08A', '#3E8A2C'],
+      ground: ['#2A3A1E', '#334826'], edge: ['#9BE06A', '#5FAE3A', '#2E6A1E'],
+      weather: 'fireflies', panel: '#10291D', text: '#CFF5B0' },
+  ];
+
+  // ───────────────────────── Rewards ─────────────────────────
+  const MEDALS = [
+    { name: 'BRONZE',   vi: 'Đồng',      c: '#D98A4A', d: '#8C4E22' },
+    { name: 'SILVER',   vi: 'Bạc',       c: '#D8DEE8', d: '#8890A0' },
+    { name: 'GOLD',     vi: 'Vàng',      c: '#FFC93D', d: '#C98A12' },
+    { name: 'PLATINUM', vi: 'Bạch kim',  c: '#A8F0E8', d: '#4AA89E' },
+    { name: 'DIAMOND',  vi: 'Kim cương', c: '#8AD8FF', d: '#3A86C8' },
+    { name: 'LEGEND',   vi: 'Huyền thoại', c: '#FF7AD9', d: '#B0308E' },
+  ];
+  const medalFor = tier => tier > 0 ? MEDALS[Math.min(tier, MEDALS.length) - 1] : null;
+
+  const SKINS = [   // skin i unlocks at milestone tier i (score i × 15)
+    { name: 'CORAL', R: '#FF6B5B', r: '#C8433D', L: '#FFA08F' },
+    { name: 'OCEAN', R: '#4D9BE6', r: '#2F5FB0', L: '#9CD3FF' },
+    { name: 'LIME',  R: '#7ED957', r: '#3E9C35', L: '#C2F59A' },
+    { name: 'ROYAL', R: '#A66BFF', r: '#6B3FC8', L: '#D2B4FF' },
+    { name: 'GHOST', R: '#E4E8FF', r: '#9AA2CC', L: '#FFFFFF' },
+  ];
+
+  // ───────────────────────── Storage ─────────────────────────
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('night-glide-' + k); return v === null ? d : Number(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('night-glide-' + k, String(v)); } catch (e) { /* storage unavailable */ } },
+  };
+  let best = store.get('best', 0);
+  let gemsTotal = store.get('gems', 0);
+  let unlocked = Math.min(store.get('unlocked', 0), SKINS.length - 1);
+  let skin = Math.min(store.get('skin', 0), unlocked);
 
   // ───────────────────────── Canvas ─────────────────────────
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
   }
   window.addEventListener('resize', resize);
@@ -159,166 +227,26 @@
     }
     return {
       unlock: ensure,
-      wing:  () => { tone({ type: 'triangle', from: 520, to: 880, dur: 0.09, vol: 0.12 }); },
-      point: () => { tone({ from: 988, dur: 0.09, vol: 0.16 }); tone({ from: 1319, dur: 0.18, vol: 0.16, delay: 0.08 }); },
-      hit:   () => { noise(0.18, 0.5); tone({ type: 'square', from: 220, to: 70, dur: 0.25, vol: 0.12 }); },
-      die:   () => { tone({ type: 'sawtooth', from: 440, to: 110, dur: 0.5, vol: 0.08, delay: 0.22 }); },
+      wing:   () => tone({ type: 'triangle', from: 520, to: 880, dur: 0.09, vol: 0.12 }),
+      point:  () => { tone({ from: 988, dur: 0.09, vol: 0.16 }); tone({ from: 1319, dur: 0.18, vol: 0.16, delay: 0.08 }); },
+      gem:    n => tone({ type: 'square', from: 1046 + Math.min(n, 10) * 70, dur: 0.07, vol: 0.06 }),
+      coin:   () => { tone({ type: 'square', from: 1319, dur: 0.06, vol: 0.07 }); tone({ type: 'square', from: 1760, dur: 0.14, vol: 0.07, delay: 0.06 }); },
+      power:  () => [523, 659, 784, 1046].forEach((f, i) => tone({ type: 'triangle', from: f, dur: 0.1, vol: 0.12, delay: i * 0.06 })),
+      fanfare:() => [523, 659, 784, 1046, 784, 1046, 1319].forEach((f, i) => tone({ type: 'square', from: f, dur: i === 6 ? 0.4 : 0.11, vol: 0.07, delay: i * 0.09 })),
+      shield: () => { noise(0.12, 0.3); tone({ type: 'triangle', from: 880, to: 330, dur: 0.25, vol: 0.12 }); },
+      skin:   () => tone({ type: 'square', from: 660, dur: 0.05, vol: 0.05 }),
+      hit:    () => { noise(0.18, 0.5); tone({ type: 'square', from: 220, to: 70, dur: 0.25, vol: 0.12 }); },
+      die:    () => tone({ type: 'sawtooth', from: 440, to: 110, dur: 0.5, vol: 0.08, delay: 0.22 }),
       toggle() { muted = !muted; return muted; },
     };
   })();
 
-  // ───────────────────────── World layers (parallax) ─────────────────────────
+  // ───────────────────────── Helpers ─────────────────────────
   const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const hash = n => { const s = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); };
 
-  const clouds = Array.from({ length: 5 }, (_, i) => ({
-    x: i * 110 + rand(0, 60), y: rand(40, 200), s: rand(0.6, 1.2),
-  }));
-  let bgOffset = 0, hillOffset = 0, seaOffset = 0, groundOffset = 0;
-
-  // ───────────────────────── Game objects ─────────────────────────
-  const bird = { x: BIRD_X, y: 0, vy: 0, rot: 0, flapTimer: 0, frame: 0, t: 0 };
-  let columns = [];
-  let particles = [];
-  let state = STATE.READY;
-  let score = 0;
-  let best = 0;
-  try { best = Number(localStorage.getItem(HS_KEY)) || 0; } catch (e) { /* storage unavailable */ }
-  let isNewBest = false;
-  let overTimer = 0;       // frames since game over (input lock + panel animation)
-  let flash = 0;           // white flash on impact
-  let scorePulse = 0;
-
-  function reset() {
-    bird.y = H * 0.42; bird.vy = 0; bird.rot = 0; bird.flapTimer = 0; bird.t = 0;
-    columns = [];
-    particles = [];
-    score = 0; isNewBest = false; overTimer = 0; flash = 0;
-    state = STATE.READY;
-  }
-
-  function spawnColumn(x) {
-    const gapY = Math.round(rand(GAP_MIN_Y, GAP_MAX_Y));
-    columns.push({ x, gapY, passed: false });
-  }
-
-  function flap() {
-    bird.vy = FLY_SPEED;
-    bird.flapTimer = 14;
-    Sound.wing();
-    for (let i = 0; i < 4; i++) {
-      particles.push({ x: bird.x - 18, y: bird.y + rand(-6, 10), vx: rand(-2.2, -0.8), vy: rand(-0.6, 0.8), life: 26, max: 26 });
-    }
-  }
-
-  function gameOver() {
-    if (state === STATE.OVER) return;
-    state = STATE.OVER;
-    flash = 1;
-    Sound.hit(); Sound.die();
-    if (score > best) { best = score; isNewBest = true; try { localStorage.setItem(HS_KEY, String(best)); } catch (e) { /* storage unavailable */ } }
-  }
-
-  // ───────────────────────── Input ─────────────────────────
-  function press() {
-    Sound.unlock();
-    if (state === STATE.READY) {
-      state = STATE.PLAY;
-      spawnColumn(W + 40);
-      flap();
-    } else if (state === STATE.PLAY) {
-      flap();
-    } else if (state === STATE.OVER && overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1) {
-      reset();
-    }
-  }
-  window.addEventListener('keydown', e => {
-    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') {
-      e.preventDefault();
-      if (!e.repeat) press();
-    }
-  });
-  canvas.addEventListener('pointerdown', e => { e.preventDefault(); press(); });
-  const muteBtn = document.getElementById('mute');
-  muteBtn.addEventListener('pointerdown', e => e.stopPropagation());
-  document.getElementById('back').addEventListener('pointerdown', e => e.stopPropagation());
-  muteBtn.addEventListener('click', () => {
-    const m = Sound.toggle();
-    muteBtn.textContent = m ? 'X' : '♪';
-    muteBtn.blur();
-  });
-
-  // ───────────────────────── Collision ─────────────────────────
-  // Slightly inset hitbox so contact feels fair with the rounded sprite.
-  function birdBox() {
-    const insetX = 9, insetY = 8;
-    return { l: bird.x - BIRD_W / 2 + insetX, r: bird.x + BIRD_W / 2 - insetX, t: bird.y - BIRD_H / 2 + insetY, b: bird.y + BIRD_H / 2 - insetY };
-  }
-  function hitsColumn(c, bx) {
-    if (bx.r <= c.x || bx.l >= c.x + COL_W) return false;
-    return bx.t < c.gapY || bx.b > c.gapY + GAP;
-  }
-
-  // ───────────────────────── Update (fixed 60 FPS step) ─────────────────────────
-  function update() {
-    bird.t++;
-    if (bird.flapTimer > 0) bird.flapTimer--;
-    bird.frame = bird.flapTimer > 0 ? Math.floor(bird.t / 3) % 3 : 1;   // fast beats when flapping, glide otherwise
-
-    if (state !== STATE.OVER) {
-      bgOffset = (bgOffset + SPEED * 0.15) % (134 * 3);
-      hillOffset = (hillOffset + SPEED * 0.35) % (256 * 3);
-      seaOffset = (seaOffset + SPEED * 0.6) % (256 * 3);
-      groundOffset = (groundOffset + SPEED) % 24;
-      for (const c of clouds) { c.x -= SPEED * 0.15 * c.s; if (c.x < -90) { c.x = W + rand(10, 80); c.y = rand(40, 200); } }
-    }
-
-    if (state === STATE.READY) {
-      // Gentle hover — no gravity until the first input.
-      bird.y = H * 0.42 + Math.sin(bird.t / 12) * 7;
-      bird.rot = 0;
-      if (bird.t % 30 === 0) bird.flapTimer = 12;
-    } else if (state === STATE.PLAY) {
-      bird.vy = Math.min(bird.vy + GRAVITY, MAX_FALL);
-      bird.y += bird.vy;
-      bird.rot = Math.max(-0.45, Math.min(1.35, bird.vy * 0.09));
-
-      // Columns
-      for (const c of columns) c.x -= SPEED;
-      const last = columns[columns.length - 1];
-      if (last && last.x <= W + 40 - (COL_W + DISTANCE)) spawnColumn(last.x + COL_W + DISTANCE);
-      columns = columns.filter(c => c.x + COL_W > -10);
-
-      // Scoring: bird passes the column's trailing edge
-      for (const c of columns) {
-        if (!c.passed && bird.x > c.x + COL_W) {
-          c.passed = true; score++; scorePulse = 1; Sound.point();
-        }
-      }
-
-      // Collisions
-      const bx = birdBox();
-      if (bx.t <= 0) { bird.y = BIRD_H / 2 - 8; gameOver(); }                 // ceiling
-      else if (bx.b >= GROUND_Y) { bird.y = GROUND_Y - BIRD_H / 2 + 8; gameOver(); } // ground
-      else if (columns.some(c => hitsColumn(c, bx))) gameOver();             // columns
-    } else if (state === STATE.OVER) {
-      overTimer++;
-      // Bird tumbles to the ground; world is frozen.
-      if (bird.y + BIRD_H / 2 < GROUND_Y) {
-        bird.vy = Math.min(bird.vy + GRAVITY * 1.4, MAX_FALL * 1.3);
-        bird.y = Math.min(bird.y + bird.vy, GROUND_Y - BIRD_H / 2);
-        bird.rot = Math.min(bird.rot + 0.12, Math.PI / 2);
-      } else {
-        bird.rot = Math.PI / 2;
-      }
-    }
-
-    for (const p of particles) { p.x += p.vx; p.y += p.vy; p.life--; }
-    particles = particles.filter(p => p.life > 0);
-    if (flash > 0) flash = Math.max(0, flash - 0.06);
-    if (scorePulse > 0) scorePulse = Math.max(0, scorePulse - 0.07);
-  }
-
-  // ───────────────────────── Drawing (retro pixel art) ─────────────────────────
+  // ───────────────────────── Pixel buffer ─────────────────────────
   // The world is painted on a low-resolution buffer (1 art pixel = 3 screen px)
   // and scaled up with nearest-neighbour sampling. UI text uses pixel fonts at full res.
   const P = 3;
@@ -329,17 +257,16 @@
   buf.width = LW; buf.height = LH;
   const b = buf.getContext('2d');
   b.imageSmoothingEnabled = false;
+  const rect = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
 
   const FONT_HEAD = '"Press Start 2P", "Courier New", monospace';
   const FONT_BODY = '"VT323", "Courier New", monospace';
   if (document.fonts && document.fonts.load) {
-    document.fonts.load(`16px "Press Start 2P"`).catch(() => {});
-    document.fonts.load(`20px "VT323"`).catch(() => {});
+    document.fonts.load('16px "Press Start 2P"').catch(() => {});
+    document.fonts.load('20px "VT323"').catch(() => {});
   }
 
-  const rect = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
-
-  // ── Sprites from character maps ──
+  // ───────────────────────── Sprites ─────────────────────────
   function sprite(rows, pal) {
     const h = rows.length, w = Math.max(...rows.map(r => r.length));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -349,7 +276,6 @@
     }));
     return c;
   }
-  const BIRD_PAL = { K: C.outline, R: C.coral, r: C.coralDark, L: C.coralLight, W: C.cream, E: C.outline, w: '#FFFFFF', Y: C.beak, y: '#E09A1E', P: '#FF9EB5' };
   const BODY = [
     '.......KKKKKK.......',
     '.....KKLLLLRRKK.....',
@@ -373,115 +299,493 @@
     { x: 2, y: 6, rows: ['.KKKKK...', 'KWWWWWK..', 'KWWWWWWK.', '.KKKKKK..'] },
     { x: 2, y: 8, rows: ['.KKKKKK..', '.KWWWWWK.', '..KWWWWK.', '...KWWK..', '....KK...'] },
   ];
-  function composeBird(bodyRows, wing) {
+  function composeBird(bodyRows, wing, pal) {
     const c = document.createElement('canvas'); c.width = 20; c.height = 15;
     const g = c.getContext('2d');
-    g.drawImage(sprite(bodyRows, BIRD_PAL), 0, 0);
-    g.drawImage(sprite(wing.rows, BIRD_PAL), wing.x, wing.y);
+    g.drawImage(sprite(bodyRows, pal), 0, 0);
+    g.drawImage(sprite(wing.rows, pal), wing.x, wing.y);
     return c;
   }
-  const BIRD_FRAMES = WINGS.map(w => composeBird(BODY, w));
-  const BIRD_DEAD = composeBird(DEAD, WINGS[1]);
+  const SKIN_SPRITES = SKINS.map(s => {
+    const pal = { K: C.outline, R: s.R, r: s.r, L: s.L, W: C.cream, E: C.outline, w: '#FFFFFF', Y: '#FFC23D', y: '#E09A1E', P: '#FF9EB5' };
+    return { frames: WINGS.map(w => composeBird(BODY, w, pal)), dead: composeBird(DEAD, WINGS[1], pal) };
+  });
 
-  // ── Seamless parallax ridges (period 256 art px) ──
+  const GEM_IMG = sprite([
+    '..KKK..',
+    '.KLggK.',
+    'KLLggdK',
+    'KgggddK',
+    '.KgddK.',
+    '..KdK..',
+    '...K...',
+  ], { K: C.outline, L: C.gemLight, g: C.gem, d: C.gemDark });
+  const MAGNET_IMG = sprite([
+    'KKK.KKK',
+    'KwK.KwK',
+    'KRK.KRK',
+    'KRKKKRK',
+    'KRRRRRK',
+    '.KRRRK.',
+    '..KKK..',
+  ], { K: C.outline, w: '#E8ECFF', R: C.magnet });
+
+  // ───────────────────────── Scene state ─────────────────────────
   const RIDGE = 256;
-  const ridge = (amp, base, k1, k2, ph) => Array.from({ length: RIDGE }, (_, x) =>
-    Math.round(base + Math.sin(2 * Math.PI * k1 * x / RIDGE + ph) * amp + Math.sin(2 * Math.PI * k2 * x / RIDGE) * amp * 0.35));
-  const FAR = ridge(9, 36, 3, 11, 0.4);    // heights above ground line
-  const NEAR = ridge(5, 15, 5, 17, 1.7);
+  let T = THEMES[0], themeIndex = -1;
+  let FAR = [], NEAR = [], NEAR_ID = [], NEAR_START = [];
+  let stars = [], weather = [];
+  const clouds = Array.from({ length: 5 }, (_, i) => ({ x: i * 110 + rand(0, 60), y: rand(40, 200), s: rand(0.6, 1.2) }));
+  let bgOffset = 0, hillOffset = 0, nearOffset = 0, groundOffset = 0;
 
-  const stars = Array.from({ length: 34 }, () => ({ x: Math.floor(rand(0, LW)), y: Math.floor(rand(4, 110)), p: Math.floor(rand(0, 120)), big: Math.random() < 0.2 }));
+  const wave = (amp, base, k1, k2, ph) => Array.from({ length: RIDGE }, (_, x) =>
+    Math.round(base + Math.sin(2 * Math.PI * k1 * x / RIDGE + ph) * amp + Math.sin(2 * Math.PI * k2 * x / RIDGE + ph * 2) * amp * 0.35));
 
-  const SKY = [  // [colour, height] top → horizon, with dithered seams between bands
-    [C.sky1, 46], [C.sky2, 40], [C.sky3, 34], [C.sky4, 28], [C.sky5, 22],
-  ];
+  function blocks(minW, maxW, minH, maxH) {   // skyline of rectangular blocks
+    const h = new Array(RIDGE), id = new Array(RIDGE), start = new Array(RIDGE);
+    let x = 0, n = 0;
+    while (x < RIDGE) {
+      const w = Math.min(Math.floor(rand(minW, maxW)), RIDGE - x), hh = Math.floor(rand(minH, maxH));
+      for (let i = 0; i < w; i++) { h[x + i] = hh; id[x + i] = n; start[x + i] = x; }
+      x += w; n++;
+    }
+    return { h, id, start };
+  }
 
-  function drawSky() {
-    let y = 0;
-    SKY.forEach(([col, h], i) => {
-      rect(0, y, LW, h, col);
-      const next = SKY[i + 1];
-      if (next) {        // two-row checker dither into the next band
-        b.fillStyle = next[0];
-        for (let x = 0; x < LW; x++) {
-          if ((x & 1) === 0) b.fillRect(x, y + h - 2, 1, 1);
-          if ((x & 1) === 1) b.fillRect(x, y + h - 1, 1, 1);
+  function spikes(spacingMin, spacingMax, hMin, hMax, slope, base) {  // peaks / pine tops (seamless)
+    const h = new Array(RIDGE).fill(base);
+    const tops = [];
+    for (let x = 0; x < RIDGE; x += Math.floor(rand(spacingMin, spacingMax))) tops.push({ x, h: rand(hMin, hMax) });
+    for (let x = 0; x < RIDGE; x++) {
+      for (const t of tops) {
+        for (const shift of [-RIDGE, 0, RIDGE]) {
+          const v = t.h - Math.abs(x - (t.x + shift)) * slope;
+          if (v > h[x]) h[x] = v;
         }
       }
-      y += h;
-    });
-    rect(0, y, LW, LG - y, C.sky5);
+      h[x] = Math.round(h[x]);
+    }
+    return h;
+  }
 
-    // Stars — blink on a stepped cycle
+  function pickTheme() {
+    let i;
+    do { i = Math.floor(Math.random() * THEMES.length); } while (i === themeIndex && THEMES.length > 1);
+    themeIndex = i; T = THEMES[i];
+    const ph = rand(0, Math.PI * 2);
+    NEAR_ID = []; NEAR_START = [];
+    switch (T.ridge) {
+      case 'dunes': FAR = wave(9, 30, 2, 5, ph); NEAR = wave(7, 13, 3, 7, ph + 1); break;
+      case 'peaks': FAR = spikes(18, 34, 34, 62, 1.6, 18); NEAR = wave(4, 12, 4, 13, ph); break;
+      case 'city': {
+        FAR = blocks(5, 12, 26, 58).h;
+        const nb = blocks(8, 17, 12, 34); NEAR = nb.h; NEAR_ID = nb.id; NEAR_START = nb.start; break;
+      }
+      case 'pines': FAR = wave(6, 26, 3, 9, ph); NEAR = spikes(5, 9, 14, 30, 2.4, 6); break;
+      default: FAR = wave(9, 36, 3, 11, ph); NEAR = wave(5, 15, 5, 17, ph + 1.3);
+    }
+    stars = T.stars ? Array.from({ length: 34 }, () => ({ x: Math.floor(rand(0, LW)), y: Math.floor(rand(4, 100)), p: Math.floor(rand(0, 120)), big: Math.random() < 0.2 })) : [];
+    weather = T.weather === 'none' ? [] : Array.from({ length: T.weather === 'rain' ? 46 : 36 }, () => ({ x: rand(0, LW), y: rand(0, LG), v: rand(0, 1), p: rand(0, 100) }));
+  }
+
+  // ───────────────────────── Game objects ─────────────────────────
+  const bird = { x: BIRD_X, y: 0, vy: 0, rot: 0, flapTimer: 0, frame: 0, t: 0 };
+  let columns = [], items = [], particles = [];
+  let state = STATE.READY;
+  let score = 0, isNewBest = false, overTimer = 0, flash = 0, scorePulse = 0;
+  let gemsRun = 0, combo = 0, comboTimer = 0, tierRun = 0;
+  let shield = false, invuln = 0, magnet = 0;
+  let banner = null;       // milestone banner { tier, t, newSkin, bonus }
+  let toast = null;        // small pickup message { text, t, c }
+
+  function reset() {
+    bird.y = H * 0.42; bird.vy = 0; bird.rot = 0; bird.flapTimer = 0; bird.t = 0;
+    columns = []; items = []; particles = [];
+    score = 0; isNewBest = false; overTimer = 0; flash = 0; scorePulse = 0;
+    gemsRun = 0; combo = 0; comboTimer = 0; tierRun = 0;
+    shield = false; invuln = 0; magnet = 0; banner = null; toast = null;
+    state = STATE.READY;
+    pickTheme();
+  }
+
+  function spawnColumn(x) {
+    const gapY = Math.round(rand(GAP_MIN_Y, GAP_MAX_Y));
+    const gc = gapY + GAP / 2;
+    const prev = columns[columns.length - 1];
+    columns.push({ x, gapY, passed: false });
+
+    // In the gap: a gem or (rarely) a star coin
+    const r = Math.random();
+    if (r < 0.1) items.push({ x: x + COL_W / 2, y: gc, type: 'coin', t: 0 });
+    else if (r < 0.65) items.push({ x: x + COL_W / 2, y: gc + rand(-20, 20), type: 'gem', t: 0 });
+
+    // Between columns: an arc of gems, sometimes with a power-up at its crest
+    if (prev && Math.random() < 0.7) {
+      const midX = x - DISTANCE / 2;
+      const midY = clamp((prev.gapY + GAP / 2 + gc) / 2, 60, GROUND_Y - 60);
+      const powerChance = score >= 2 ? 0.14 : 0;
+      [-28, 0, 28].forEach((dx, i) => {
+        const y = midY - (i === 1 ? 14 : 0);
+        if (i === 1 && Math.random() < powerChance) {
+          items.push({ x: midX + dx, y, type: Math.random() < 0.5 ? 'shield' : 'magnet', t: 0 });
+        } else {
+          items.push({ x: midX + dx, y, type: 'gem', t: i * 8 });
+        }
+      });
+    }
+  }
+
+  function burst(x, y, colors, n, speed = 2, gravity = 0, life = 28) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = rand(0.4, 1) * speed;
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: gravity, life, max: life, c: colors[i % colors.length], big: Math.random() < 0.3 });
+    }
+  }
+
+  function flap() {
+    bird.vy = FLY_SPEED;
+    bird.flapTimer = 14;
+    Sound.wing();
+    for (let i = 0; i < 4; i++) {
+      particles.push({ x: bird.x - 18, y: bird.y + rand(-6, 10), vx: rand(-2.2, -0.8), vy: rand(-0.6, 0.8), g: 0, life: 26, max: 26, c: C.cream });
+    }
+  }
+
+  function collect(it) {
+    it.taken = true;
+    switch (it.type) {
+      case 'gem':
+        combo = comboTimer > 0 ? combo + 1 : 0; comboTimer = 50;
+        gemsRun += 1; Sound.gem(combo);
+        burst(it.x, it.y, [C.gem, C.gemLight], 6, 1.6);
+        break;
+      case 'coin':
+        gemsRun += 5; Sound.coin();
+        burst(it.x, it.y, [C.gold, C.goldLight], 10, 2);
+        toast = { text: '+5', t: 50, c: C.gold, x: it.x, y: it.y };
+        break;
+      case 'shield':
+        if (shield) { gemsRun += 5; toast = { text: '+5', t: 50, c: C.gold, x: it.x, y: it.y }; }
+        else { shield = true; toast = { text: 'SHIELD', t: 60, c: C.shield, x: it.x, y: it.y }; }
+        Sound.power(); burst(it.x, it.y, [C.shield, '#FFFFFF'], 12, 2.2);
+        break;
+      case 'magnet':
+        magnet = MAGNET_FRAMES; Sound.power();
+        toast = { text: 'MAGNET', t: 60, c: C.magnet, x: it.x, y: it.y };
+        burst(it.x, it.y, [C.magnet, '#FFFFFF'], 12, 2.2);
+        break;
+    }
+  }
+
+  function milestone(tier) {
+    tierRun = tier;
+    const bonus = 10 * tier;
+    gemsRun += bonus;
+    shield = true;
+    let newSkin = null;
+    if (tier > unlocked && tier < SKINS.length) {
+      unlocked = tier; store.set('unlocked', unlocked);
+      newSkin = SKINS[tier].name;
+    }
+    banner = { tier, t: 170, newSkin, bonus };
+    const m = medalFor(tier);
+    for (let i = 0; i < 3; i++) burst(rand(80, 320), rand(90, 220), [m.c, C.cream, C.gem, C.coral], 18, 3, 0.08, 50);
+    Sound.fanfare();
+  }
+
+  // Shield absorbs a hit; returns true if the bird survives.
+  function absorb(kind) {
+    if (!shield) return false;
+    shield = false; invuln = 70; flash = 0.5;
+    Sound.shield();
+    burst(bird.x, bird.y, [C.shield, '#FFFFFF'], 16, 3);
+    if (kind === 'ground') bird.vy = FLY_SPEED;
+    if (kind === 'ceiling') bird.vy = 2;
+    return true;
+  }
+
+  function gameOver() {
+    if (state === STATE.OVER) return;
+    state = STATE.OVER;
+    flash = 1;
+    Sound.hit(); Sound.die();
+    if (score > best) { best = score; isNewBest = true; store.set('best', best); }
+    gemsTotal += gemsRun; store.set('gems', gemsTotal);
+  }
+
+  // ───────────────────────── Input ─────────────────────────
+  const SKIN_Y = 306;
+  const arrowHit = (x, y) => {
+    if (y < SKIN_Y - 26 || y > SKIN_Y + 26) return 0;
+    if (x > 70 && x < 140) return -1;
+    if (x > 260 && x < 330) return 1;
+    return 0;
+  };
+  function changeSkin(dir) {
+    if (unlocked === 0) return false;
+    skin = (skin + dir + unlocked + 1) % (unlocked + 1);
+    store.set('skin', skin);
+    Sound.skin();
+    return true;
+  }
+
+  function press(x, y) {
+    Sound.unlock();
+    if (state === STATE.READY) {
+      if (x !== undefined) { const d = arrowHit(x, y); if (d && changeSkin(d)) return; }
+      state = STATE.PLAY;
+      spawnColumn(W + 40);
+      flap();
+    } else if (state === STATE.PLAY) {
+      flap();
+    } else if (state === STATE.OVER && overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1) {
+      reset();
+    }
+  }
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') {
+      e.preventDefault();
+      if (!e.repeat) press();
+    } else if (state === STATE.READY && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+      e.preventDefault();
+      changeSkin(e.code === 'ArrowLeft' ? -1 : 1);
+    }
+  });
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    press((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H);
+  });
+  const muteBtn = document.getElementById('mute');
+  muteBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  const backBtn = document.getElementById('back');
+  if (backBtn) backBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  muteBtn.addEventListener('click', () => {
+    const m = Sound.toggle();
+    muteBtn.textContent = m ? 'X' : '♪';
+    muteBtn.blur();
+  });
+
+  // ───────────────────────── Collision ─────────────────────────
+  function birdBox() {
+    const insetX = 9, insetY = 8;
+    return { l: bird.x - BIRD_W / 2 + insetX, r: bird.x + BIRD_W / 2 - insetX, t: bird.y - BIRD_H / 2 + insetY, b: bird.y + BIRD_H / 2 - insetY };
+  }
+  function hitsColumn(c, bx) {
+    if (bx.r <= c.x || bx.l >= c.x + COL_W) return false;
+    return bx.t < c.gapY || bx.b > c.gapY + GAP;
+  }
+
+  // ───────────────────────── Update (fixed 60 FPS step) ─────────────────────────
+  function updateWeather() {
+    for (const w of weather) {
+      switch (T.weather) {
+        case 'snow': w.y += 0.18 + w.v * 0.25; w.x += Math.sin((bird.t + w.p * 10) / 40) * 0.12 - 0.12; break;
+        case 'rain': w.y += 2.6 + w.v; w.x -= 0.9; break;
+        case 'dust': w.x -= 0.9 + w.v * 1.2; w.y += Math.sin((bird.t + w.p * 10) / 30) * 0.08; break;
+        case 'fireflies': w.x += Math.sin((bird.t + w.p * 13) / 55) * 0.18 - 0.08; w.y += Math.cos((bird.t + w.p * 7) / 45) * 0.12; break;
+      }
+      if (w.y > LG) { w.y = -3; w.x = rand(0, LW + 20); }
+      if (w.x < -4) { w.x = LW + 2; if (T.weather !== 'fireflies') w.y = rand(0, LG); }
+      if (T.weather === 'fireflies') w.y = clamp(w.y, 60, LG - 4);
+    }
+  }
+
+  function update() {
+    bird.t++;
+    if (bird.flapTimer > 0) bird.flapTimer--;
+    bird.frame = bird.flapTimer > 0 ? Math.floor(bird.t / 3) % 3 : 1;
+    updateWeather();
+
+    if (state !== STATE.OVER) {
+      bgOffset = (bgOffset + SPEED * 0.15) % (LW * P);
+      hillOffset = (hillOffset + SPEED * 0.35) % (RIDGE * P);
+      nearOffset = (nearOffset + SPEED * 0.6) % (RIDGE * P);
+      groundOffset = (groundOffset + SPEED) % 24;
+      for (const c of clouds) { c.x -= SPEED * 0.15 * c.s; if (c.x < -90) { c.x = W + rand(10, 80); c.y = rand(40, 200); } }
+    }
+
+    if (state === STATE.READY) {
+      bird.y = H * 0.42 + Math.sin(bird.t / 12) * 7;
+      bird.rot = 0;
+      if (bird.t % 30 === 0) bird.flapTimer = 12;
+    } else if (state === STATE.PLAY) {
+      bird.vy = Math.min(bird.vy + GRAVITY, MAX_FALL);
+      bird.y += bird.vy;
+      bird.rot = Math.max(-0.45, Math.min(1.35, bird.vy * 0.09));
+      if (invuln > 0) invuln--;
+      if (magnet > 0) magnet--;
+      if (comboTimer > 0) comboTimer--;
+
+      // Columns
+      for (const c of columns) c.x -= SPEED;
+      const last = columns[columns.length - 1];
+      if (last && last.x <= W + 40 - (COL_W + DISTANCE)) spawnColumn(last.x + COL_W + DISTANCE);
+      columns = columns.filter(c => c.x + COL_W > -10);
+
+      // Collectibles
+      for (const it of items) {
+        it.x -= SPEED; it.t++;
+        if (magnet > 0 && (it.type === 'gem' || it.type === 'coin')) {
+          const dx = bird.x - it.x, dy = bird.y - it.y, d = Math.hypot(dx, dy);
+          if (d < 170) { it.x += dx / d * 6; it.y += dy / d * 6; }
+        }
+        const dy = it.y + Math.sin(it.t / 12) * 3 - bird.y;
+        if (!it.taken && Math.hypot(it.x - bird.x, dy) < 27) collect(it);
+      }
+      items = items.filter(it => !it.taken && it.x > -20);
+
+      // Scoring
+      for (const c of columns) {
+        if (!c.passed && bird.x > c.x + COL_W) {
+          c.passed = true; score++; scorePulse = 1; Sound.point();
+          if (score % MILESTONE === 0) milestone(score / MILESTONE);
+        }
+      }
+
+      // Collisions
+      const bx = birdBox();
+      if (bx.t <= 0) { if (!absorb('ceiling')) { bird.y = BIRD_H / 2 - 8; gameOver(); } else bird.y = BIRD_H / 2 - 6; }
+      else if (bx.b >= GROUND_Y) { if (!absorb('ground')) { bird.y = GROUND_Y - BIRD_H / 2 + 8; gameOver(); } else bird.y = GROUND_Y - BIRD_H / 2 + 6; }
+      else if (invuln === 0 && columns.some(c => hitsColumn(c, bx))) { if (!absorb('column')) gameOver(); }
+    } else if (state === STATE.OVER) {
+      overTimer++;
+      if (bird.y + BIRD_H / 2 < GROUND_Y) {
+        bird.vy = Math.min(bird.vy + GRAVITY * 1.4, MAX_FALL * 1.3);
+        bird.y = Math.min(bird.y + bird.vy, GROUND_Y - BIRD_H / 2);
+        bird.rot = Math.min(bird.rot + 0.12, Math.PI / 2);
+      } else {
+        bird.rot = Math.PI / 2;
+      }
+    }
+
+    for (const p of particles) { p.x += p.vx; p.y += p.vy; p.vy += p.g || 0; p.life--; }
+    particles = particles.filter(p => p.life > 0);
+    if (banner && --banner.t <= 0) banner = null;
+    if (toast && --toast.t <= 0) toast = null;
+    if (flash > 0) flash = Math.max(0, flash - 0.06);
+    if (scorePulse > 0) scorePulse = Math.max(0, scorePulse - 0.07);
+  }
+
+  // ───────────────────────── Drawing: world (low-res buffer) ─────────────────────────
+  function disc(cx, cy, r, c) {
+    for (let dy = -r; dy <= r; dy++) {
+      const half = Math.floor(Math.sqrt(r * r - dy * dy));
+      rect(cx - half, cy + dy, half * 2 + 1, 1, c);
+    }
+  }
+
+  function drawSky() {
+    const bands = [46, 40, 34, 28, 22];
+    let y = 0;
+    T.sky.forEach((col, i) => {
+      rect(0, y, LW, bands[i], col);
+      const next = T.sky[i + 1];
+      if (next) {
+        b.fillStyle = next;
+        for (let x = 0; x < LW; x++) b.fillRect(x, y + bands[i] - 2 + (x & 1), 1, 1);
+      }
+      y += bands[i];
+    });
+    rect(0, y, LW, LG - y, T.sky[4]);
+
     for (const s of stars) {
       const sx = ((s.x - Math.floor(bgOffset / P)) % LW + LW) % LW;
       if ((bird.t + s.p) % 120 < 100) {
-        rect(sx, s.y, 1, 1, C.star);
-        if (s.big && (bird.t + s.p) % 60 < 30) { rect(sx - 1, s.y, 3, 1, C.star); rect(sx, s.y - 1, 1, 3, C.star); }
+        rect(sx, s.y, 1, 1, T.stars);
+        if (s.big && (bird.t + s.p) % 60 < 30) { rect(sx - 1, s.y, 3, 1, T.stars); rect(sx, s.y - 1, 1, 3, T.stars); }
       }
     }
 
-    // Moon (pixel disc + craters)
-    const mx = 112 - Math.floor(bgOffset / P / 5), my = 74, r = 10;
-    for (let dy = -r; dy <= r; dy++) {
-      const half = Math.floor(Math.sqrt(r * r - dy * dy));
-      rect(mx - half, my + dy, half * 2 + 1, 1, C.moon);
-    }
-    rect(mx - 4, my - 4, 3, 2, C.moonDark); rect(mx + 3, my + 2, 2, 2, C.moonDark); rect(mx - 2, my + 5, 2, 1, C.moonDark);
-    // Halo ring
-    b.fillStyle = 'rgba(255,227,168,0.18)';
+    const cel = T.cel, mx = cel.x - Math.floor(bgOffset / P / 5), my = cel.y, r = cel.r;
+    b.fillStyle = cel.type === 'sun' ? 'rgba(255,224,122,0.22)' : 'rgba(255,240,210,0.15)';
     for (let dy = -r - 3; dy <= r + 3; dy++) {
       const half = Math.floor(Math.sqrt((r + 3) ** 2 - dy * dy));
       b.fillRect(mx - half, my + dy, half * 2 + 1, 1);
     }
+    if (cel.type === 'crescent') {
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (dx * dx + dy * dy <= r * r && (dx - 4) ** 2 + (dy + 2) ** 2 > (r - 1) ** 2) rect(mx + dx, my + dy, 1, 1, cel.c);
+      }
+    } else {
+      disc(mx, my, r, cel.c);
+      if (cel.type === 'moon') {
+        rect(mx - 4, my - 4, 3, 2, cel.d); rect(mx + 3, my + 2, 2, 2, cel.d); rect(mx - 2, my + 5, 2, 1, cel.d);
+      } else {   // retro sun: stripes cut through the lower half
+        for (let k = 0; k < 4; k++) rect(mx - r, my + 3 + k * 4, r * 2 + 1, 1 + (k >> 1), T.sky[4]);
+        rect(mx - r + 4, my - r + 4, 3, 2, '#FFF6C8');
+      }
+    }
 
-    // Blocky clouds
     for (const c of clouds) {
       const cx = Math.round(c.x / P), cy = Math.round(c.y / P) + 10, s = c.s > 0.9 ? 2 : 1;
-      rect(cx - 6 * s, cy, 14 * s, 3, C.cloud);
-      rect(cx - 3 * s, cy - 2, 8 * s, 2, C.cloud);
-      rect(cx - 6 * s, cy + 3, 14 * s, 1, C.cloudShade);
+      rect(cx - 6 * s, cy, 14 * s, 3, T.cloud[0]);
+      rect(cx - 3 * s, cy - 2, 8 * s, 2, T.cloud[0]);
+      rect(cx - 6 * s, cy + 3, 14 * s, 1, T.cloud[1]);
     }
   }
 
-  function drawHills() {
-    const fo = Math.floor(hillOffset / P), no = Math.floor(seaOffset / P);
+  function drawRidges() {
+    const fo = Math.floor(hillOffset / P), no = Math.floor(nearOffset / P);
     for (let x = 0; x < LW; x++) {
-      const hf = FAR[(x + fo) % RIDGE];
-      rect(x, LG - hf, 1, hf, C.hillFar);
-      rect(x, LG - hf, 1, 1, C.hillFarTop);
-      const hn = NEAR[(x + no) % RIDGE];
-      rect(x, LG - hn, 1, hn, C.hillNear);
+      const fi = (x + fo) % RIDGE, hf = FAR[fi];
+      rect(x, LG - hf, 1, hf, T.far[0]);
+      if (T.ridge === 'peaks') { if (hf > 40) rect(x, LG - hf, 1, Math.min(4, hf - 40), T.far[1]); }
+      else if (T.ridge === 'city') { if (FAR[fi] !== FAR[(fi + 1) % RIDGE]) rect(x, LG - hf, 1, hf, T.far[1]); }
+      else rect(x, LG - hf, 1, 1, T.far[1]);
+    }
+    for (let x = 0; x < LW; x++) {
+      const ni = (x + no) % RIDGE, hn = NEAR[ni];
+      rect(x, LG - hn, 1, hn, T.near);
+      if (T.ridge === 'city') {     // lit windows, stable per building
+        const id = NEAR_ID[ni], lx = ni - NEAR_START[ni];
+        if (lx % 3 === 1) {
+          for (let wy = LG - hn + 3; wy < LG - 3; wy += 4) {
+            if (hash(id * 31 + lx * 7 + wy) < 0.42) rect(x, wy, 1, 2, T.windows[id % 3]);
+          }
+        }
+      }
+    }
+  }
+
+  function drawWeather() {
+    for (const w of weather) {
+      const x = Math.round(w.x), y = Math.round(w.y);
+      switch (T.weather) {
+        case 'snow': rect(x, y, w.v > 0.7 ? 2 : 1, w.v > 0.7 ? 2 : 1, '#FFFFFF'); break;
+        case 'rain': rect(x, y, 1, 3, 'rgba(127,216,255,0.55)'); break;
+        case 'dust': rect(x, y, 1, 1, 'rgba(255,211,160,0.6)'); break;
+        case 'fireflies':
+          if ((bird.t + Math.floor(w.p * 7)) % 90 < 55) { rect(x, y, 1, 1, '#E8FF7A'); b.fillStyle = 'rgba(232,255,122,0.25)'; b.fillRect(x - 1, y - 1, 3, 3); }
+          break;
+      }
     }
   }
 
   function drawPillar(x, top, bottom, capAtBottom) {
-    // x, top, bottom are in art pixels
-    const w = COL_W / P;          // 24
+    const w = COL_W / P;
     if (bottom <= top) return;
-    rect(x, top, w, bottom - top, C.stone);
-    rect(x + 2, top, 3, bottom - top, C.stoneLight);
-    rect(x + w - 4, top, 3, bottom - top, C.stoneDark);
-    // Brick mortar (aligned to the cap so it scrolls with the pillar)
+    const [stone, light, dark, mortar] = T.stone;
+    rect(x, top, w, bottom - top, stone);
+    rect(x + 2, top, 3, bottom - top, light);
+    rect(x + w - 4, top, 3, bottom - top, dark);
     const anchor = capAtBottom ? bottom : top;
     for (let y = top; y < bottom; y++) {
       const d = y - anchor, ry = ((d % 6) + 6) % 6, course = Math.floor(d / 6);
-      if (ry === 0) rect(x + 1, y, w - 2, 1, C.mortar);
-      else if (course & 1) rect(x + 12, y, 1, 1, C.mortar);
-      else { rect(x + 6, y, 1, 1, C.mortar); rect(x + 18, y, 1, 1, C.mortar); }
+      if (ry === 0) rect(x + 1, y, w - 2, 1, mortar);
+      else if (course & 1) rect(x + 12, y, 1, 1, mortar);
+      else { rect(x + 6, y, 1, 1, mortar); rect(x + 18, y, 1, 1, mortar); }
     }
     rect(x, top, 1, bottom - top, C.outline);
     rect(x + w - 1, top, 1, bottom - top, C.outline);
 
-    // Crystal cap
-    const cw = w + 4, ch = 6, cx = x - 2;
-    const cy = capAtBottom ? bottom - ch : top;
+    const cw = w + 4, ch = 6, cx = x - 2, cy = capAtBottom ? bottom - ch : top;
+    const [cap, capL, capD] = T.cap;
     rect(cx, cy, cw, ch, C.outline);
-    rect(cx + 1, cy + 1, cw - 2, ch - 2, C.mint);
-    rect(cx + 2, cy + 1, cw - 8, 1, C.mintLight);
-    rect(cx + cw - 4, cy + 1, 2, ch - 2, C.mintDark);
-    // Gem studs
-    for (let gx = cx + 4; gx < cx + cw - 4; gx += 6) rect(gx, cy + 3, 2, 1, C.mintLight);
+    rect(cx + 1, cy + 1, cw - 2, ch - 2, cap);
+    rect(cx + 2, cy + 1, cw - 8, 1, capL);
+    rect(cx + cw - 4, cy + 1, 2, ch - 2, capD);
+    for (let gx = cx + 4; gx < cx + cw - 4; gx += 6) rect(gx, cy + 3, 2, 1, capL);
   }
 
   function drawColumns() {
@@ -494,40 +798,84 @@
 
   function drawGround() {
     const off = Math.floor(groundOffset / P) % 8;
-    rect(0, LG, LW, LH - LG, C.ground);
+    rect(0, LG, LW, LH - LG, T.ground[0]);
     rect(0, LG, LW, 1, C.outline);
-    rect(0, LG + 1, LW, 2, C.mintLight);
-    // Grass tufts
-    for (let x = -off; x < LW + 8; x += 8) { rect(x + 1, LG + 3, 2, 1, C.mint); rect(x + 5, LG + 3, 1, 2, C.mintDark); }
+    rect(0, LG + 1, LW, 2, T.edge[0]);
+    for (let x = -off; x < LW + 8; x += 8) { rect(x + 1, LG + 3, 2, 1, T.edge[1]); rect(x + 5, LG + 3, 1, 2, T.edge[2]); }
     rect(0, LG + 5, LW, 1, C.outline);
-    // Checker tiles
     for (let row = 0; row < 3; row++) {
-      for (let x = -off - (row & 1 ? 4 : 0); x < LW + 8; x += 8) {
-        rect(x, LG + 7 + row * 8, 4, 4, C.groundTile);
+      for (let x = -off - (row & 1 ? 4 : 0); x < LW + 8; x += 8) rect(x, LG + 7 + row * 8, 4, 4, T.ground[1]);
+    }
+  }
+
+  function drawItems() {
+    for (const it of items) {
+      const x = Math.round(it.x / P), y = Math.round((it.y + Math.sin(it.t / 12) * 3) / P);
+      switch (it.type) {
+        case 'gem': {
+          b.drawImage(GEM_IMG, x - 3, y - 3);
+          if ((it.t >> 3) % 6 === 0) rect(x - 1, y - 2, 1, 1, '#FFFFFF');
+          break;
+        }
+        case 'coin': {   // spinning star coin
+          const wds = [7, 5, 3, 5], wd = wds[(it.t >> 3) % 4];
+          rect(x - (wd >> 1), y - 4, wd, 9, C.outline);
+          rect(x - (wd >> 1), y - 3, wd, 7, C.outline);
+          rect(x - (wd >> 1) + (wd > 3 ? 1 : 0), y - 3, Math.max(1, wd - 2), 7, C.gold);
+          if (wd > 3) { rect(x, y - 2, 1, 5, C.goldLight); rect(x - 1, y, 3, 1, C.goldLight); }
+          if (wd === 7) rect(x + 2, y - 2, 1, 4, C.goldDark);
+          break;
+        }
+        case 'shield': {
+          const pulse = (it.t >> 4) % 2;
+          b.fillStyle = 'rgba(127,216,255,0.25)';
+          for (let dy = -6; dy <= 6; dy++) { const h = Math.floor(Math.sqrt(36 - dy * dy)); b.fillRect(x - h, y + dy, h * 2 + 1, 1); }
+          for (let a = 0; a < 32; a++) { const t = a / 32 * Math.PI * 2; rect(Math.round(x + Math.cos(t) * (6 + pulse)), Math.round(y + Math.sin(t) * (6 + pulse)), 1, 1, C.shield); }
+          rect(x - 2, y - 3, 5, 4, '#FFFFFF'); rect(x - 1, y + 1, 3, 1, '#FFFFFF'); rect(x, y + 2, 1, 1, '#FFFFFF');
+          rect(x - 1, y - 2, 3, 2, C.shield);
+          break;
+        }
+        case 'magnet': {
+          b.fillStyle = 'rgba(255,77,94,0.22)';
+          for (let dy = -6; dy <= 6; dy++) { const h = Math.floor(Math.sqrt(36 - dy * dy)); b.fillRect(x - h, y + dy, h * 2 + 1, 1); }
+          b.drawImage(MAGNET_IMG, x - 3, y - 3);
+          break;
+        }
       }
     }
   }
 
   function drawBird() {
-    const img = state === STATE.OVER ? BIRD_DEAD : BIRD_FRAMES[bird.frame];
+    const set = SKIN_SPRITES[skin];
+    const img = state === STATE.OVER ? set.dead : set.frames[bird.frame];
     const cx = Math.round(bird.x / P), cy = Math.round(bird.y / P);
-    // Snap rotation to 22.5° steps for a hand-drawn feel
-    const rot = Math.round(bird.rot / (Math.PI / 8)) * (Math.PI / 8);
-    b.save();
-    b.translate(cx, cy);
-    b.rotate(rot);
-    b.drawImage(img, -10, -8);
-    b.restore();
+    const blinkOut = invuln > 0 && (invuln >> 2) % 2 === 0;
+    if (!blinkOut) {
+      const rot = Math.round(bird.rot / (Math.PI / 8)) * (Math.PI / 8);
+      b.save(); b.translate(cx, cy); b.rotate(rot); b.drawImage(img, -10, -8); b.restore();
+    }
+    if (shield && state === STATE.PLAY) {
+      const rr = 13 + ((bird.t >> 4) % 2);
+      for (let a = 0; a < 56; a++) {
+        if ((a + (bird.t >> 2)) % 7 === 0) continue;
+        const t = a / 56 * Math.PI * 2;
+        rect(Math.round(cx + Math.cos(t) * rr), Math.round(cy + Math.sin(t) * (rr - 2)), 1, 1, C.shield);
+      }
+    }
+    if (magnet > 0 && state === STATE.PLAY && (bird.t >> 3) % 2) {
+      rect(cx - 15, cy - 1, 2, 1, C.magnet); rect(cx + 14, cy - 1, 2, 1, C.magnet);
+    }
   }
 
   function drawParticles() {
     for (const p of particles) {
       if (p.life / p.max < 0.3 && p.life % 2) continue;
-      rect(Math.round(p.x / P), Math.round(p.y / P), 1, 1, p.life > p.max / 2 ? C.cream : C.mintLight);
+      const s = p.big ? 2 : 1;
+      rect(Math.round(p.x / P), Math.round(p.y / P), s, s, p.c || C.cream);
     }
   }
 
-  // ── Full-resolution UI helpers ──
+  // ───────────────────────── Drawing: UI (full res) ─────────────────────────
   const snap = v => Math.round(v / P) * P;
   function text(str, x, y, { size = 16, color = C.cream, align = 'center', font = FONT_HEAD, shadow = C.outline, alpha = 1 } = {}) {
     ctx.save();
@@ -540,7 +888,6 @@
     ctx.fillText(str, snap(x), snap(y));
     ctx.restore();
   }
-  // Box with notched pixel corners and a 3px border
   function pixelBox(x, y, w, h, fill, border, shadow = true) {
     x = snap(x); y = snap(y); w = snap(w); h = snap(h);
     if (shadow) { ctx.fillStyle = 'rgba(14,10,31,0.6)'; ctx.fillRect(x + P * 2, y + P * 2, w, h); }
@@ -551,61 +898,147 @@
     ctx.fillRect(x + 2 * P, y + P, w - 4 * P, h - 2 * P);
     ctx.fillRect(x + P, y + 2 * P, w - 2 * P, h - 4 * P);
   }
-
-  function drawUI() {
-    if (state === STATE.READY) {
-      const bob = (Math.floor(bird.t / 20) % 2) * P;
-      text('NIGHT', W / 2, 104 + bob, { size: 40, color: C.mintLight });
-      text('GLIDE', W / 2, 152 + bob, { size: 40, color: C.coral });
-      text('Cánh chim đêm', W / 2, 192, { size: 24, color: C.lilac, font: FONT_BODY });
-
-      if (Math.floor(bird.t / 30) % 2 === 0) {
-        text('PRESS SPACE', W / 2, 360, { size: 14 });
-        text('/ CLICK TO PLAY', W / 2, 384, { size: 14 });
-      }
-      text('Nhấn Space / Chạm màn hình để bắt đầu', W / 2, 414, { size: 20, color: C.lilac, font: FONT_BODY });
-      if (best > 0) text(`BEST ${best}`, W / 2, 456, { size: 12, color: C.moon });
-      return;
+  function icon(img, x, y, scale = P) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, snap(x), snap(y), img.width * scale, img.height * scale);
+  }
+  function arrow(x, y, dir, color) {
+    ctx.fillStyle = color;
+    for (let i = 0; i < 5; i++) {
+      const h = (5 - i) * 2 - 1;
+      const cx = dir < 0 ? x - i * P : x + i * P;
+      ctx.fillRect(snap(cx), snap(y - (h * P) / 2), P, h * P);
     }
+  }
+  function medalIcon(m, x, y) {
+    const s = P, X = snap(x), Y = snap(y);
+    ctx.fillStyle = C.coral; ctx.fillRect(X - 2 * s, Y - 6 * s, 2 * s, 4 * s);
+    ctx.fillStyle = '#4D9BE6'; ctx.fillRect(X, Y - 6 * s, 2 * s, 4 * s);
+    const rows = [[-1, 2], [-2, 4], [-3, 6], [-3, 6], [-3, 6], [-2, 4], [-1, 2]];
+    rows.forEach(([o, w], i) => { ctx.fillStyle = C.outline; ctx.fillRect(X + (o - 1) * s, Y + (i - 2) * s, (w + 2) * s, s); });
+    rows.forEach(([o, w], i) => { if (i > 0 && i < 6) { ctx.fillStyle = m.c; ctx.fillRect(X + o * s, Y + (i - 2) * s, w * s, s); } });
+    ctx.fillStyle = m.d; ctx.fillRect(X + s, Y, s, 2 * s);
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(X - 2 * s, Y - s, s, s);
+  }
 
-    if (state === STATE.PLAY) {
-      text(String(score), W / 2, 66 + (scorePulse > 0.5 ? -P : 0), { size: 36, color: C.cream });
-      return;
+  function drawHUD() {
+    text(String(score), W / 2, 66 + (scorePulse > 0.5 ? -P : 0), { size: 36, color: C.cream });
+    // Gems this flight (below the Back button)
+    icon(GEM_IMG, 15, 72);
+    text(String(gemsRun), 42, 84, { size: 12, align: 'left' });
+    // Active power-ups (below the sound button)
+    let px = 366;
+    if (magnet > 0) {
+      icon(MAGNET_IMG, px - 6, 72);
+      const wbar = Math.ceil(magnet / MAGNET_FRAMES * 7) * P;
+      ctx.fillStyle = C.outline; ctx.fillRect(px - 9, 99, 27, 6);
+      ctx.fillStyle = C.magnet; ctx.fillRect(px - 9, 99, wbar, 6);
+      px -= 33;
     }
+    if (shield) {
+      ctx.fillStyle = C.outline; ctx.fillRect(snap(px - 6), 72, 21, 24);
+      ctx.fillStyle = C.shield; ctx.fillRect(snap(px - 3), 75, 15, 12);
+      ctx.fillRect(snap(px), 87, 9, 3); ctx.fillRect(snap(px + 3), 90, 3, 3);
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(snap(px), 78, 3, 6);
+    }
+    if (toast) {
+      const rise = (60 - toast.t) * 0.6;
+      text(toast.text, toast.x, toast.y - 24 - rise, { size: 10, color: toast.c, alpha: Math.min(1, toast.t / 20) });
+    }
+    if (banner) drawBanner();
+  }
 
-    // Game over: panel drops in with stepped motion
-    const k = Math.min(1, overTimer / 24);
-    const py = snap(150 + Math.round((1 - k) * 8) * -12);
+  function drawBanner() {
+    const m = medalFor(banner.tier);
+    const age = 170 - banner.t;
+    if (banner.t < 30 && (banner.t >> 2) % 2) return;     // blink out
+    const drop = Math.max(0, 6 - Math.floor(age / 2)) * 12;
+    const y = 104 - drop, hgt = banner.newSkin ? 120 : 98;
+    ctx.save(); ctx.globalAlpha = 0.92;
+    pixelBox(42, y, W - 84, hgt, T.panel, m.c);
+    ctx.restore();
+    medalIcon(m, 84, y + 40);
+    text(`${banner.tier * MILESTONE}!`, 214, y + 24, { size: 20, color: m.c });
+    text(`${m.name} MEDAL`, 214, y + 50, { size: 10, color: C.cream });
+    text(`Huy chương ${m.vi}`, 214, y + 68, { size: 18, color: T.text, font: FONT_BODY });
+    text(`+${banner.bonus} GEMS · +SHIELD`, W / 2, y + 86, { size: 18, color: C.gem, font: FONT_BODY });
+    if (banner.newSkin) text(`NEW SKIN: ${banner.newSkin}`, W / 2, y + 106, { size: 10, color: C.gold });
+  }
+
+  function drawReady() {
+    const bob = (Math.floor(bird.t / 20) % 2) * P;
+    text('NIGHT', W / 2, 96 + bob, { size: 40, color: T.cap[1] });
+    text('GLIDE', W / 2, 144 + bob, { size: 40, color: C.coral });
+    text('Cánh chim đêm', W / 2, 182, { size: 24, color: C.cream, font: FONT_BODY });
+    // Scene tag
+    text(`· ${T.name} ·`, W / 2, 216, { size: 10, color: T.text });
+    text(T.vi, W / 2, 234, { size: 18, color: T.text, font: FONT_BODY });
+
+    // Skin selector
+    const can = unlocked > 0;
+    arrow(84, SKIN_Y, -1, can ? C.cream : 'rgba(255,241,214,0.25)');
+    arrow(316, SKIN_Y, 1, can ? C.cream : 'rgba(255,241,214,0.25)');
+    text(SKINS[skin].name, W / 2, SKIN_Y - 6, { size: 12, color: C.cream });
+    text(can ? `Skin ${skin + 1}/${unlocked + 1} · đổi màu chim` : `Reach ${MILESTONE} to unlock skins`, W / 2, SKIN_Y + 14, { size: 18, color: T.text, font: FONT_BODY });
+
+    if (Math.floor(bird.t / 30) % 2 === 0) {
+      text('PRESS SPACE', W / 2, 360, { size: 14 });
+      text('/ CLICK TO PLAY', W / 2, 384, { size: 14 });
+    }
+    text('Nhấn Space / Chạm màn hình để bắt đầu', W / 2, 414, { size: 20, color: T.text, font: FONT_BODY });
+    text(`BEST ${best}`, W / 2 - 56, 456, { size: 12, color: '#FFE3A8' });
+    icon(GEM_IMG, W / 2 + 16, 445);
+    text(String(gemsTotal), W / 2 + 44, 456, { size: 12, align: 'left' });
+  }
+
+  function drawOver() {
     if (overTimer < 4) return;
-    text('GAME OVER', W / 2, py - 40, { size: 30, color: C.coral });
+    const k = Math.min(1, overTimer / 24);
+    const py = snap(118 - Math.round((1 - k) * 8) * 12);
+    text('GAME OVER', W / 2, py - 36, { size: 30, color: C.coral });
 
-    pixelBox(57, py, W - 114, 174, C.panel, C.mintLight);
-    text('SCORE · ĐIỂM', W / 2, py + 26, { size: 22, color: C.lilac, font: FONT_BODY, shadow: null });
-    text(String(score), W / 2, py + 58, { size: 30, color: C.cream });
-    ctx.fillStyle = C.lilac;
-    for (let i = -48; i < 48; i += 2 * P) ctx.fillRect(snap(W / 2 + i), py + 87, P, P);
-    text('HIGH SCORE · KỶ LỤC', W / 2, py + 108, { size: 22, color: C.lilac, font: FONT_BODY, shadow: null });
-    text(String(best), W / 2, py + 140, { size: 24, color: C.moon });
+    pixelBox(51, py, W - 102, 222, T.panel, T.cap[1]);
+    text('SCORE · ĐIỂM', W / 2, py + 24, { size: 20, color: T.text, font: FONT_BODY, shadow: null });
+    text(String(score), W / 2, py + 52, { size: 28, color: C.cream });
+    text('HIGH SCORE · KỶ LỤC', W / 2, py + 82, { size: 20, color: T.text, font: FONT_BODY, shadow: null });
+    text(String(best), W / 2, py + 108, { size: 20, color: '#FFE3A8' });
+    ctx.fillStyle = T.text;
+    for (let i = -66; i < 66; i += 2 * P) ctx.fillRect(snap(W / 2 + i), py + 130, P, P);
+
+    const m = medalFor(tierRun);
+    if (m) {
+      medalIcon(m, 90, py + 160);
+      text(`${m.name} MEDAL`, 116, py + 156, { size: 10, align: 'left', color: m.c });
+      text(`Huy chương ${m.vi}`, 116, py + 174, { size: 18, align: 'left', color: T.text, font: FONT_BODY, shadow: null });
+    } else {
+      text(`Reach ${MILESTONE} for a medal`, W / 2, py + 160, { size: 18, color: T.text, font: FONT_BODY, shadow: null });
+      text(`Đạt ${MILESTONE} điểm để nhận huy chương`, W / 2, py + 176, { size: 18, color: T.text, font: FONT_BODY, shadow: null });
+    }
+    icon(GEM_IMG, 78, py + 192);
+    text(`+${gemsRun}`, 106, py + 203, { size: 12, align: 'left', color: C.gem });
+    text(`TOTAL ${gemsTotal}`, W - 78, py + 203, { size: 18, align: 'right', color: T.text, font: FONT_BODY, shadow: null });
+
     if (isNewBest && score > 0 && Math.floor(overTimer / 20) % 2 === 0) {
-      pixelBox(W - 120, py - 12, 66, 30, C.coral, C.outline, false);
-      text('NEW', W - 87, py + 4, { size: 12, color: C.cream, shadow: null });
+      pixelBox(W - 126, py - 14, 66, 30, C.coral, C.outline, false);
+      text('NEW', W - 93, py + 2, { size: 12, color: C.cream, shadow: null });
     }
 
     const ready = overTimer > 35 && bird.y + BIRD_H / 2 >= GROUND_Y - 1;
     if (ready) {
-      const by = py + 198;
-      pixelBox(W / 2 - 96, by, 192, 48, C.mint, C.outline);
+      const by = py + 240;
+      pixelBox(W / 2 - 96, by, 192, 48, T.cap[0], C.outline);
       text('REPLAY', W / 2, by + 18, { size: 14, color: C.outline, shadow: null });
-      text('Chơi lại', W / 2, by + 36, { size: 18, color: C.outline, font: FONT_BODY, shadow: null });
-      text('Space / Click', W / 2, by + 72, { size: 20, color: C.lilac, font: FONT_BODY });
+      text('Chơi lại · cảnh mới', W / 2, by + 36, { size: 18, color: C.outline, font: FONT_BODY, shadow: null });
     }
   }
 
   function render() {
     b.clearRect(0, 0, LW, LH);
     drawSky();
-    drawHills();
+    drawRidges();
+    drawWeather();
     drawColumns();
+    drawItems();
     drawGround();
     drawParticles();
     drawBird();
@@ -613,14 +1046,16 @@
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, W, H);
     ctx.drawImage(buf, 0, 0, LW * P, LH * P);
-    drawUI();
+    if (state === STATE.READY) drawReady();
+    else if (state === STATE.PLAY) drawHUD();
+    else drawOver();
     if (flash > 0) { ctx.fillStyle = `rgba(255,241,214,${Math.ceil(flash * 3) / 3 * 0.8})`; ctx.fillRect(0, 0, W, H); }
   }
 
   // ───────────────────────── Loop ─────────────────────────
   let last = performance.now(), acc = 0;
   function loop(now) {
-    acc += Math.min(now - last, 250);   // avoid spiral after tab switch
+    acc += Math.min(now - last, 250);
     last = now;
     while (acc >= STEP) { update(); acc -= STEP; }
     render();
