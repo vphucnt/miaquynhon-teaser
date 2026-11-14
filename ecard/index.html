@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gửi Thiệp Mùa Lễ Hội · Festive eCards — Mia Quy Nhon</title>
+  <meta name="description" content="Gửi thiệp Giáng Sinh và Năm Mới từ Mia Quy Nhon | Fusion Collection. Send a festive eCard from the Quy Nhơn coast.">
+  <meta property="og:title" content="Festive eCards — Mia Quy Nhon | Fusion Collection">
+  <meta property="og:description" content="Send a Christmas or New Year greeting from the Quy Nhơn coast.">
+  <meta name="theme-color" content="#A8513B">
+  <link rel="icon" href="assets/img/logo-terracotta.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/ecard.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="https://miaquynhon.com" target="_blank" rel="noopener"><img class="topbar__logo" src="assets/img/logo-white.png" alt="Mia Quy Nhon | Fusion Collection"></a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="vi" aria-pressed="true">VI</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <p class="hero__eyebrow" data-i18n="heroEyebrow"></p>
+    <h1 class="hero__title" data-i18n="heroTitle"></h1>
+    <p class="hero__lede" data-i18n="heroLede"></p>
+  </section>
+
+  <main class="builder">
+    <div class="panel">
+      <form id="form" novalidate>
+        <!-- Step 1 -->
+        <section class="step">
+          <div class="step__head"><span class="step__num">01</span><h2 class="step__title" data-i18n="step1"></h2></div>
+          <div class="themes" id="themes" role="radiogroup"></div>
+        </section>
+
+        <!-- Step 2 -->
+        <section class="step">
+          <div class="step__head"><span class="step__num">02</span><h2 class="step__title" data-i18n="step2"></h2></div>
+          <label class="drop" id="drop">
+            <svg class="drop__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg>
+            <p class="drop__title" data-i18n="uploadTitle"></p>
+            <p class="drop__hint" data-i18n="uploadHint"></p>
+            <input type="file" id="photo" accept="image/*" class="sr-only">
+          </label>
+          <p class="muted" data-i18n="uploadNone"></p>
+          <div class="photo-tools" id="photoTools">
+            <img id="photoThumb" alt="">
+            <label><span data-i18n="photoPos"></span><input type="range" id="photoPos" min="0" max="100" value="50"></label>
+            <button type="button" class="linkbtn" id="photoRemove" data-i18n="removePhoto"></button>
+          </div>
+        </section>
+
+        <!-- Step 3 -->
+        <section class="step">
+          <div class="step__head"><span class="step__num">03</span><h2 class="step__title" data-i18n="step3"></h2></div>
+          <p class="chips__label" data-i18n="suggestions"></p>
+          <div class="chips" id="chips"></div>
+          <label class="field"><span><span data-i18n="message"></span> <em>*</em></span>
+            <textarea class="input" id="message" maxlength="400" data-i18n-ph="messagePh"></textarea>
+          </label>
+          <div class="counter"><span id="count">0</span>/<span id="max">400</span> <span data-i18n="chars"></span></div>
+          <label class="field"><span><span data-i18n="fromName"></span> <em>*</em></span>
+            <input class="input" id="fromName" maxlength="60" autocomplete="name" data-i18n-ph="fromNamePh">
+          </label>
+        </section>
+
+        <!-- Step 4 -->
+        <section class="step" id="sendStep">
+          <div class="step__head"><span class="step__num">04</span><h2 class="step__title" data-i18n="step4"></h2></div>
+          <p class="notice notice--info" id="configNotice" data-i18n="notConfigured"></p>
+          <label class="field"><span><span data-i18n="fromEmail"></span> <em>*</em></span>
+            <input class="input" id="fromEmail" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com">
+          </label>
+          <div class="field"><span><span data-i18n="recipients"></span> <em>*</em></span>
+            <div id="recipients"></div>
+            <button type="button" class="linkbtn" id="addRecipient" data-i18n="addRecipient"></button>
+          </div>
+          <input class="hp" type="text" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <label class="check"><input type="checkbox" id="consent"> <span data-i18n="consent"></span></label>
+          <p class="notice notice--error" id="error" role="alert"></p>
+          <div class="actions">
+            <button type="button" class="btn btn--ghost" id="previewBtn" data-i18n="preview"></button>
+            <button type="submit" class="btn" id="sendBtn" data-i18n="send"></button>
+          </div>
+        </section>
+      </form>
+
+      <div class="done" id="done" hidden>
+        <svg class="done__seal" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="40" fill="#A8513B"/><circle cx="42" cy="42" r="33" fill="none" stroke="#C9A56B" stroke-width="1.5"/><path d="M28 43l9 9 19-20" fill="none" stroke="#F3DDB0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2 data-i18n="sentTitle"></h2>
+        <p data-i18n="sentBody"></p>
+        <div class="actions" style="justify-content:center">
+          <a class="btn btn--ghost" id="viewSent" target="_blank" rel="noopener" data-i18n="viewCard"></a>
+          <button type="button" class="btn" id="another" data-i18n="another"></button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="preview" aria-live="polite">
+      <p class="preview__label" data-i18n="livePreview"></p>
+      <div class="preview__stage" id="stage"><div id="card"></div></div>
+    </aside>
+  </main>
+
+  <footer class="site-foot"><em>Heritage of the Coast</em><br><span data-i18n="footer"></span></footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/themes.js"></script>
+  <script src="assets/js/builder.js"></script>
+</body>
+</html>
