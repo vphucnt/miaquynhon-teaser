@@ -173,7 +173,8 @@
   let particles = [];
   let state = STATE.READY;
   let score = 0;
-  let best = Number(localStorage.getItem(HS_KEY)) || 0;
+  let best = 0;
+  try { best = Number(localStorage.getItem(HS_KEY)) || 0; } catch (e) { /* storage unavailable */ }
   let isNewBest = false;
   let overTimer = 0;       // frames since game over (input lock + panel animation)
   let flash = 0;           // white flash on impact
@@ -206,7 +207,7 @@
     state = STATE.OVER;
     flash = 1;
     Sound.hit(); Sound.die();
-    if (score > best) { best = score; isNewBest = true; localStorage.setItem(HS_KEY, String(best)); }
+    if (score > best) { best = score; isNewBest = true; try { localStorage.setItem(HS_KEY, String(best)); } catch (e) { /* storage unavailable */ } }
   }
 
   // ───────────────────────── Input ─────────────────────────
