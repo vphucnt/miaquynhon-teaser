@@ -1,6 +1,6 @@
 /* Mia Quy Nhon — Festive eCard: synthesised music box (Web Audio, no audio files).
- * Melodies: Jingle Bells, Silent Night, Auld Lang Syne (all public domain) and an
- * original pentatonic spring melody for Tết. */
+ * Public-domain melodies: Jingle Bells, Silent Night, We Wish You a Merry Christmas,
+ * Deck the Halls, Auld Lang Syne. Original melodies: Midnight Waltz, Coastal Dawn. */
 (function () {
   'use strict';
 
@@ -28,8 +28,28 @@
               'G5:1.5 E5:.5 E5:1 C5:1 D5:1.5 C5:.5 D5:1 E5:.5 D5:.5 C5:1.5 A4:.5 A4:1 G4:1 C5:3',
       bass: 'R:1 C3:4 G2:4 C3:4 F2:4 C3:4 G2:4 F2:2 G2:2 C3:4 F2:4 C3:4 G2:4 F2:4 C3:4 G2:4 F2:2 G2:2 C3:3'
     },
-    tet: {
-      bpm: 104, voice: 'pluck', transpose: 0,
+    wewish: {
+      bpm: 120, voice: 'musicbox', transpose: 12,
+      melody: 'D4:1 G4:1 G4:.5 A4:.5 G4:.5 F#4:.5 E4:1 E4:1 E4:1 A4:1 A4:.5 B4:.5 A4:.5 G4:.5 F#4:1 D4:1 D4:1 ' +
+              'B4:1 B4:.5 C5:.5 B4:.5 A4:.5 G4:1 E4:1 D4:.5 D4:.5 E4:1 A4:1 F#4:1 G4:2',
+      bass: 'R:1 G2:3 C3:3 A2:3 D3:3 B2:3 C3:3 D3:3 G2:2'
+    },
+    deck: {
+      bpm: 132, voice: 'musicbox', transpose: 12,
+      melody: 'G4:1.5 F4:.5 E4:1 D4:1 C4:1 D4:1 E4:1 C4:1 D4:.5 E4:.5 F4:.5 D4:.5 E4:1.5 D4:.5 C4:1 B3:1 C4:2 ' +
+              'G4:1.5 F4:.5 E4:1 D4:1 C4:1 D4:1 E4:1 C4:1 D4:.5 E4:.5 F4:.5 D4:.5 E4:1.5 D4:.5 C4:1 B3:1 C4:2 ' +
+              'D4:1.5 E4:.5 F4:1 D4:1 E4:1.5 F4:.5 G4:1 D4:1 E4:.5 F#4:.5 G4:1 A4:.5 B4:.5 C5:1 B4:1 A4:1 G4:2 ' +
+              'G4:1.5 F4:.5 E4:1 D4:1 C4:1 D4:1 E4:1 C4:1 A4:.5 A4:.5 A4:.5 A4:.5 G4:1.5 F4:.5 E4:1 D4:1 C4:2',
+      bass: 'C3:4 C3:4 G2:4 G2:2 C3:2 C3:4 C3:4 G2:4 G2:2 C3:2 G2:4 C3:4 D3:4 G2:4 C3:4 C3:4 F2:4 G2:2 C3:2'
+    },
+    midnight: {
+      bpm: 138, voice: 'musicbox', transpose: 0,
+      melody: 'G4:1 C5:1 E5:1 G5:2 E5:1 F5:1 E5:1 D5:1 C5:3 A4:1 C5:1 F5:1 A5:2 G5:1 F5:1 E5:1 D5:1 E5:3 ' +
+              'G4:1 C5:1 E5:1 G5:2 C6:1 B5:1 A5:1 G5:1 F5:3 D5:1 E5:1 F5:1 G5:1 E5:1 D5:1 C5:3 R:3',
+      bass: 'C3:3 C3:3 G2:3 C3:3 F2:3 F2:3 G2:3 C3:3 C3:3 A2:3 G2:3 F2:3 G2:3 G2:3 C3:3 C3:3'
+    },
+    coastal: {
+      bpm: 100, voice: 'pluck', transpose: 0,
       melody: 'E5:1 G5:1 A5:2 G5:1 E5:1 D5:2 C5:1 D5:1 E5:1 G5:1 D5:4 E5:1 G5:1 A5:1 C6:1 A5:2 G5:2 E5:1 D5:1 C5:1 A4:1 C5:4 ' +
               'A5:1 C6:1 D6:2 C6:1 A5:1 G5:2 E5:1 G5:1 A5:1 C6:1 G5:4 A5:1 G5:1 E5:1 D5:1 E5:2 G5:2 D5:1 C5:1 A4:1 G4:1 C5:4',
       bass: 'A2:4 G2:4 C3:4 G2:4 A2:4 C3:4 G2:4 C3:4 D3:4 C3:4 A2:4 G2:4 A2:4 C3:4 G2:4 C3:4'
@@ -82,16 +102,18 @@
       const voice = opts.voice || 'musicbox', vol = opts.vol || 0.18;
       const out = ctx.createGain();
       out.connect(this.bus);
-      const partials = voice === 'pluck'
+      const partials = (voice === 'pluck' || voice === 'harp')
         ? [[1, 1, 'triangle'], [2, .35, 'sine'], [3, .12, 'sine']]
+        : voice === 'celesta'
+          ? [[1, 1, 'sine'], [4, .28, 'sine'], [2, .18, 'sine'], [6.2, .05, 'sine']]
         : voice === 'bass'
           ? [[1, 1, 'sine'], [2, .15, 'sine']]
           : [[1, 1, 'sine'], [2, .42, 'sine'], [3.01, .16, 'sine'], [4.2, .08, 'sine']];
-      const decay = voice === 'bass' ? Math.min(dur * 1.1, 2.2) : voice === 'pluck' ? 0.9 : 1.6;
+      const decay = voice === 'bass' ? Math.min(dur * 1.1, 2.2) : voice === 'pluck' ? 0.9 : voice === 'harp' ? 1.8 : voice === 'celesta' ? 1.1 : 1.6;
       partials.forEach(([mul, amp, type]) => {
         const o = ctx.createOscillator(), g = ctx.createGain();
         o.type = type; o.frequency.setValueAtTime(freq * mul, t);
-        if (voice === 'pluck') o.frequency.exponentialRampToValueAtTime(freq * mul * 0.997, t + 0.25);
+        if (voice === 'pluck' || voice === 'harp') o.frequency.exponentialRampToValueAtTime(freq * mul * 0.997, t + 0.25);
         g.gain.setValueAtTime(0.0001, t);
         g.gain.exponentialRampToValueAtTime(vol * amp, t + (voice === 'bass' ? 0.04 : 0.006));
         g.gain.exponentialRampToValueAtTime(0.0001, t + decay / Math.sqrt(mul));
@@ -110,11 +132,12 @@
       src.connect(f); f.connect(g); g.connect(this.bus); src.start(t);
     }
 
-    play(songId) {
+    play(songId, voiceOverride) {
       if (!this.ensure()) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
       this.stop(true);
-      const s = SONGS[songId] || SONGS.jingle;
+      const s = Object.assign({}, SONGS[songId] || SONGS.jingle);
+      if (voiceOverride) s.voice = voiceOverride;
       this.song = s; this.playing = true;
       const spb = 60 / s.bpm;
       const mel = parse(s.melody, s.transpose), bass = parse(s.bass, s.transpose ? 12 : 0);

@@ -24,12 +24,37 @@ const CONFIG = {
   DAILY_LIMIT: 400                              // stay under the Gmail/Workspace sending quota
 };
 
-const THEMES = {
-  christmas:   { vi: 'Giáng Sinh',          en: 'Christmas',        title: 'Merry Christmas',  sub: 'Giáng Sinh An Lành', color: '#A8513B' },
-  silentnight: { vi: 'Giáng Sinh',          en: 'Christmas',        title: 'Peace & Joy',      sub: 'Giáng Sinh Bình An', color: '#234E64' },
-  newyear:     { vi: 'Năm Mới',             en: 'New Year',         title: 'Happy New Year',   sub: 'Chúc Mừng Năm Mới 2027', color: '#16303F' },
-  tet:         { vi: 'Tết Đinh Mùi',        en: 'Lunar New Year',   title: 'Chúc Mừng Năm Mới', sub: 'Happy Lunar New Year', color: '#9B3524' }
+const OCCASIONS = {
+  christmas: { vi: 'Giáng Sinh', en: 'Christmas' },
+  newyear:   { vi: 'Năm Mới',    en: 'New Year' }
 };
+
+// Generated from assets/js/themes.js — keep the ids in step with the front end.
+const TEMPLATES = {
+  'c-coastal': { occasion: 'christmas', title: "Merry Christmas", sub: "Giáng Sinh An Lành", color: '#A8513B' },
+  'c-silent': { occasion: 'christmas', title: "Silent Night", sub: "Đêm Thánh Vô Cùng", color: '#234E64' },
+  'c-pines': { occasion: 'christmas', title: "Season’s Greetings", sub: "Mùa Lễ Hội An Vui", color: '#2F4A3E' },
+  'c-baubles': { occasion: 'christmas', title: "Joy & Wonder", sub: "Niềm Vui Mùa Giáng Sinh", color: '#7E3D2C' },
+  'c-wreath': { occasion: 'christmas', title: "Merry Christmas", sub: "Giáng Sinh Hạnh Phúc", color: '#2F4A3E' },
+  'c-candle': { occasion: 'christmas', title: "Peace & Light", sub: "Bình An & Ấm Áp", color: '#13293A' },
+  'c-snowflake': { occasion: 'christmas', title: "Let It Snow", sub: "Giáng Sinh An Lành", color: '#5E8D99' },
+  'c-gift': { occasion: 'christmas', title: "Warmest Wishes", sub: "Gửi Trao Yêu Thương", color: '#E0967A' },
+  'c-bells': { occasion: 'christmas', title: "Merry & Bright", sub: "Chuông Ngân Mùa Lễ Hội", color: '#B08A52' },
+  'c-noel': { occasion: 'christmas', title: "Joyeux Noël", sub: "Giáng Sinh An Lành", color: '#1E3329' },
+  'n-seafire': { occasion: 'newyear', title: "Happy New Year", sub: "Chúc Mừng Năm Mới 2027", color: '#102330' },
+  'n-2027': { occasion: 'newyear', title: "Hello 2027", sub: "Xin Chào Năm Mới", color: '#234E64' },
+  'n-cheers': { occasion: 'newyear', title: "Cheers to 2027", sub: "Nâng Ly Chào Năm Mới", color: '#1A1C1B' },
+  'n-midnight': { occasion: 'newyear', title: "At the Stroke of Midnight", sub: "Khoảnh Khắc Giao Thừa", color: '#234E64' },
+  'n-deco': { occasion: 'newyear', title: "A Golden Year", sub: "Năm Mới Hoàng Kim 2027", color: '#1A1C1B' },
+  'n-confetti': { occasion: 'newyear', title: "Let’s Celebrate", sub: "Chúc Mừng Năm Mới", color: '#E0967A' },
+  'n-lanterns': { occasion: 'newyear', title: "Make a Wish", sub: "Ước Nguyện Năm Mới", color: '#3E2A33' },
+  'n-boats': { occasion: 'newyear', title: "New Year by the Sea", sub: "Đón Năm Mới Bên Biển", color: '#0F2533' },
+  'n-sunrise': { occasion: 'newyear', title: "A Bright New Year", sub: "Năm Mới Rạng Rỡ", color: '#E0967A' },
+  'n-sparklers': { occasion: 'newyear', title: "Shine Bright", sub: "Năm Mới Lấp Lánh", color: '#7E3D2C' },
+};
+// Earlier theme names still resolve
+const ALIAS = { christmas: 'c-coastal', silentnight: 'c-silent', newyear: 'n-seafire', tet: 'n-seafire' };
+function template_(id) { return TEMPLATES[id] ? id : (ALIAS[id] || 'c-coastal'); }
 
 const HEADERS = ['id', 'created', 'theme', 'lang', 'fromName', 'fromEmail', 'toName', 'toEmail',
   'message', 'photoFileId', 'photoPosY', 'views', 'firstViewed'];
@@ -105,7 +130,7 @@ function doPost(e) {
 
     // ---- validate
     const EMAIL = /^[^\s@<>()[\],;:"]+@[^\s@<>()[\],;:"]+\.[a-z]{2,}$/i;
-    const theme = THEMES[d.theme] ? d.theme : 'christmas';
+    const theme = template_(d.theme);
     const lang = d.lang === 'en' ? 'en' : 'vi';
     const clean = (s, n) => String(s || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, n);
     const message = clean(d.message, CONFIG.MAX_MESSAGE);
@@ -168,12 +193,12 @@ function esc_(s) {
 }
 
 function sendEmail_(c) {
-  const t = THEMES[c.theme];
+  const t = TEMPLATES[template_(c.theme)], occ = OCCASIONS[t.occasion];
   const url = CONFIG.ECARD_BASE_URL + 'card.html?id=' + c.id;
   const vi = c.lang === 'vi';
   const subject = vi
-    ? c.fromName + ' gửi bạn một tấm thiệp ' + t.vi + ' · A ' + t.en + ' card for you'
-    : c.fromName + ' has sent you a ' + t.en + ' card · Thiệp ' + t.vi + ' dành cho bạn';
+    ? c.fromName + ' gửi bạn một tấm thiệp ' + occ.vi + ' · A ' + occ.en + ' card for you'
+    : c.fromName + ' has sent you a ' + occ.en + ' card · Thiệp ' + occ.vi + ' dành cho bạn';
   const greet = c.toName ? (vi ? 'Gửi ' : 'Dear ') + esc_(c.toName) + ',' : (vi ? 'Xin chào,' : 'Hello,');
   const lead = vi
     ? '<strong>' + esc_(c.fromName) + '</strong> vừa gửi bạn một tấm thiệp mùa lễ hội từ bờ biển Quy Nhơn — kèm hiệu ứng và giai điệu riêng.'
@@ -182,7 +207,7 @@ function sendEmail_(c) {
     ? esc_(c.fromName) + ' has sent you a festive card from the Quy Nhơn coast.'
     : esc_(c.fromName) + ' vừa gửi bạn một tấm thiệp mùa lễ hội từ bờ biển Quy Nhơn.';
   const cta = vi ? 'Mở thiệp · Open your card' : 'Open your card · Mở thiệp';
-  const hero = c.photoBlob ? 'cid:photo' : CONFIG.ECARD_BASE_URL + 'assets/img/email-' + c.theme + '.jpg';
+  const hero = c.photoBlob ? 'cid:photo' : CONFIG.ECARD_BASE_URL + 'assets/img/email-' + template_(c.theme) + '.jpg';
   const logo = CONFIG.ECARD_BASE_URL + 'assets/img/logo-white.png';
   const preview = esc_(c.message).slice(0, 140) + (c.message.length > 140 ? '…' : '');
 
@@ -194,12 +219,12 @@ function sendEmail_(c) {
   '<tr><td align="center" style="background:' + t.color + ';padding:22px;"><img src="' + logo + '" width="150" alt="Mia Quy Nhon | Fusion Collection" style="display:block;width:150px;height:auto;border:0;"></td></tr>' +
   '<tr><td><a href="' + url + '"><img src="' + hero + '" width="560" alt="' + esc_(t.title) + '" style="display:block;width:100%;height:auto;max-height:420px;object-fit:cover;border:0;"></a></td></tr>' +
   '<tr><td align="center" style="padding:30px 36px 6px;">' +
-    '<div style="font-family:\'Playfair Display\',Georgia,serif;font-style:italic;font-size:34px;line-height:1.1;color:' + t.color + ';">' + esc_(t.title) + '</div>' +
+    '<div style="font-family:\'Playfair Display\',Georgia,serif;font-style:italic;font-size:34px;line-height:1.1;color:#A8513B;">' + esc_(t.title) + '</div>' +
     '<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#234E64;font-weight:700;margin-top:8px;">' + esc_(t.sub) + '</div>' +
     '<div style="width:120px;height:1px;background:#C9A56B;margin:20px auto;"></div>' +
   '</td></tr>' +
   '<tr><td style="padding:0 40px;font-size:15px;line-height:1.65;">' +
-    '<p style="margin:0 0 10px;font-family:\'Playfair Display\',Georgia,serif;font-style:italic;font-size:18px;color:' + t.color + ';">' + greet + '</p>' +
+    '<p style="margin:0 0 10px;font-family:\'Playfair Display\',Georgia,serif;font-style:italic;font-size:18px;color:#A8513B;">' + greet + '</p>' +
     '<p style="margin:0 0 6px;">' + lead + '</p>' +
     '<p style="margin:0 0 22px;color:#8A8B8C;font-size:13px;font-style:italic;">' + leadAlt + '</p>' +
   '</td></tr>' +
@@ -228,6 +253,6 @@ function sendEmail_(c) {
 /* Quick manual test from the Apps Script editor */
 function testSend() {
   const me = Session.getActiveUser().getEmail();
-  sendEmail_({ id: '00000000-0000-0000-0000-000000000000', theme: 'christmas', lang: 'vi', fromName: 'Mia Quy Nhon',
+  sendEmail_({ id: '00000000-0000-0000-0000-000000000000', theme: 'c-coastal', lang: 'vi', fromName: 'Mia Quy Nhon',
     fromEmail: me, toName: 'Test', toEmail: me, message: 'Chúc bạn một mùa Giáng Sinh an lành.', photoBlob: null });
 }

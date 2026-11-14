@@ -1,11 +1,11 @@
 /* Mia Quy Nhon — Festive eCard: recipient viewer */
 (function () {
   'use strict';
-  const { THEMES, MESSAGES, I18N, detectLang, renderCard } = window.MQN;
+  const { TEMPLATES, getTemplate, MESSAGES, I18N, detectLang, renderCard } = window.MQN;
   const CFG = window.ECARD_CONFIG || {};
   const $ = s => document.querySelector(s);
   const qp = new URLSearchParams(location.search);
-  // Also accept hash routes (#preview, #demo-tet) for hosts that strip query strings
+  // Also accept hash routes (#preview, #demo-c-coastal) for hosts that strip query strings
   const hash = location.hash.replace(/^#/, '');
   if (hash === 'preview') qp.set('preview', '1');
   if (hash.startsWith('demo-')) qp.set('demo', hash.slice(5));
@@ -23,10 +23,12 @@
       if (!raw) { try { raw = localStorage.getItem('mqn-ecard-preview'); } catch (e) { /* storage blocked */ } }
       if (raw) return Object.assign(JSON.parse(raw), { preview: true });
     }
-    const demo = qp.get('demo');
-    if (demo && THEMES[demo]) {
+    let demo = qp.get('demo');
+    if (demo) {
       const lang = detectLang();
-      const m = MESSAGES[demo][0];
+      const tp = getTemplate(demo);
+      demo = tp.id;
+      const m = MESSAGES[tp.occasion][0];
       return { theme: demo, lang, toName: lang === 'vi' ? 'Lan Anh' : 'Charlotte', fromName: 'Mia Quy Nhon',
         message: lang === 'vi' ? `${m.vi}\n${m.en}` : `${m.en}\n${m.vi}`, photo: '', preview: true };
     }
@@ -54,10 +56,10 @@
   function open() {
     const env = $('#envelope');
     if (env.classList.contains('is-open')) return;
-    const theme = THEMES[data.theme];
+    const theme = getTemplate(data.theme);
     env.classList.add('is-open');
     music.chime();
-    setTimeout(() => music.play(theme.song), 700);
+    setTimeout(() => music.play(theme.song, theme.voice), 700);
     $('#sound').hidden = false; $('#sound').innerHTML = ICON_ON;
 
     setTimeout(() => {
@@ -77,7 +79,7 @@
     setTimeout(() => {
       wrap.classList.add('is-shown');
       fx.burstConfetti();
-      music.play(THEMES[data.theme].song);
+      music.play(getTemplate(data.theme).song, getTemplate(data.theme).voice);
       typewrite($('#card [data-message]'), data.message || '');
     }, 500);
   }
@@ -87,11 +89,12 @@
     try { data = await load(); } catch (e) { console.error(e); data = null; }
     if (!data) { setLoading(L.notFound); $('#dock').classList.add('is-on'); labelDock(); $('#replay').hidden = true; return; }
 
-    data.theme = THEMES[data.theme] ? data.theme : 'christmas';
+    data.theme = getTemplate(data.theme).id;
     L = I18N[data.lang === 'en' ? 'en' : 'vi'];
     document.documentElement.lang = data.lang === 'en' ? 'en' : 'vi';
-    const theme = THEMES[data.theme];
-    document.body.className = `viewer stage--${theme.id}`;
+    const theme = getTemplate(data.theme);
+    document.body.style.background = `radial-gradient(120% 90% at 50% 0%, ${theme.stage[0]} 0%, ${theme.stage[1]} 38%, ${theme.stage[2]} 100%) fixed`;
+    document.querySelector('meta[name=theme-color]').content = theme.stage[1];
     $('#loading').hidden = true;
 
     $('#envIntro').textContent = L.envelopeFor;
@@ -105,7 +108,7 @@
     if (data.preview) { const b = document.createElement('div'); b.className = 'badge'; b.textContent = L.previewBadge; document.body.appendChild(b); }
 
     fx = new window.MQN.Effects($('#fx'), { onBurst: k => music.pop(k) });
-    fx.start(theme.effect === 'fireworks' ? 'stars' : theme.effect); // a gentle ambience before opening
+    fx.start(theme.effect === 'fireworks' ? 'stars' : theme.effect === 'confetti' ? 'sparkle' : theme.effect); // gentle ambience before opening
     $('#envelope').addEventListener('click', open);
   }
 

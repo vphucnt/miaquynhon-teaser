@@ -6,22 +6,45 @@
 - `card.html` — trang người nhận mở thiệp: phong bì có dấu sáp, chạm để mở, hiệu ứng động và nhạc.
 - `backend/Code.gs` — máy chủ miễn phí trên Google Apps Script: lưu thiệp (Google Sheet), lưu ảnh (Google Drive) và gửi email.
 
-## Bốn chủ đề
+## Mẫu thiệp: 2 dịp × 10 mẫu
 
-| Chủ đề | Hiệu ứng | Âm nhạc |
-|---|---|---|
-| Giáng Sinh Bên Biển · Coastal Christmas | Tuyết trắng & kim tuyến vàng | Jingle Bells (hộp nhạc + chuông) |
-| Đêm Thánh Vô Cùng · Silent Night | Trời sao lấp lánh, sao băng | Silent Night |
-| Chào Năm Mới 2027 · New Year | Pháo hoa kèm tiếng nổ nhẹ | Auld Lang Syne |
-| Xuân Đinh Mùi 2027 · Lunar New Year | Hoa mai vàng rơi | Giai điệu ngũ cung nguyên bản |
+Mỗi mẫu là một tổ hợp riêng gồm **bố cục** (6 kiểu: vòm Chăm, tràn viền, huy chương tròn, bưu thiếp, ảnh polaroid, tạp chí), **bảng màu** và **hoạ tiết minh hoạ**, kèm hiệu ứng động và nhạc.
 
-Âm nhạc được tổng hợp trực tiếp trong trình duyệt (Web Audio) — không dùng file âm thanh, không vướng bản quyền (các giai điệu đều thuộc phạm vi công cộng hoặc tự sáng tác).
+| Giáng Sinh | Bố cục | Hiệu ứng | Nhạc |
+|---|---|---|---|
+| Giáng Sinh bên biển · Coastal Christmas | Vòm | Tuyết | Jingle Bells |
+| Đêm thánh · Silent Night | Huy chương | Trời sao | Silent Night |
+| Rừng thông tuyết · Snowy Pines | Tràn viền | Tuyết | We Wish You a Merry Christmas |
+| Quả châu vàng · Golden Baubles | Tạp chí | Kim tuyến | Deck the Halls |
+| Vòng hoa · Festive Wreath | Vòm | Bông tuyết | Jingle Bells (celesta) |
+| Ánh nến · Candlelight | Bưu thiếp | Kim tuyến | Silent Night (harp) |
+| Bông tuyết · Snowflake | Polaroid | Bông tuyết | We Wish You… (celesta) |
+| Món quà · The Gift | Huy chương + vòng hoa | Tuyết | Deck the Halls |
+| Chuông ngân · Ringing Bells | Tạp chí | Tuyết | Jingle Bells |
+| Đêm Noël · Noël Night | Tràn viền | Tuyết | Silent Night |
+
+| Năm Mới 2027 | Bố cục | Hiệu ứng | Nhạc |
+|---|---|---|---|
+| Pháo hoa trên biển · Fireworks by the Sea | Vòm | Pháo hoa | Auld Lang Syne |
+| Xin chào 2027 · Hello 2027 | Tạp chí | Hoa giấy | Điệu valse giao thừa |
+| Nâng ly · Cheers | Tràn viền | Kim tuyến | Auld Lang Syne (celesta) |
+| Khoảnh khắc giao thừa · Midnight | Huy chương | Trời sao | Điệu valse giao thừa |
+| Hoàng kim · Golden Deco | Tạp chí | Kim tuyến | Auld Lang Syne (harp) |
+| Hoa giấy · Confetti | Polaroid | Hoa giấy | Điệu valse giao thừa (celesta) |
+| Đèn trời · Sky Lanterns | Vòm | Đèn trời bay lên | Bình minh trên biển |
+| Thuyền thúng · Basket Boats | Tràn viền | Pháo hoa | Bình minh trên biển (harp) |
+| Bình minh đầu năm · First Sunrise | Bưu thiếp | Kim tuyến | Bình minh trên biển |
+| Pháo bông · Sparklers | Huy chương | Kim tuyến | Auld Lang Syne |
+
+Âm nhạc được tổng hợp trực tiếp trong trình duyệt (Web Audio) — không dùng file âm thanh. Các bài Giáng Sinh và Auld Lang Syne thuộc phạm vi công cộng; “Điệu valse giao thừa” và “Bình minh trên biển” là giai điệu tự sáng tác.
+
+Thêm/sửa mẫu: `assets/js/themes.js` (danh sách `TEMPLATES`) và hoạ tiết trong `assets/js/motifs.js`. Khi thêm mẫu mới, cập nhật bảng `TEMPLATES` trong `backend/Code.gs` và tạo ảnh banner `assets/img/email-<id>.jpg`.
 
 ## Xem thử ngay (không cần cài đặt)
 
 - Trang tạo thiệp: `/ecard/index.html` — nút **Xem trước hiệu ứng** mở thiệp đầy đủ hiệu ứng.
-- Thiệp mẫu: `/ecard/card.html?demo=christmas` (hoặc `silentnight`, `newyear`, `tet`).
-- Mở sẵn một chủ đề: `/ecard/index.html?theme=tet`.
+- Thiệp mẫu: `/ecard/card.html#demo-c-coastal` (thay bằng mã mẫu bất kỳ, ví dụ `n-lanterns`).
+- Mở sẵn một mẫu: `/ecard/index.html?theme=n-2027`.
 
 Khi chưa cấu hình máy chủ, trang vẫn chạy ở chế độ xem trước; nút **Gửi thiệp** sẽ hiển thị thông báo.
 
@@ -48,9 +71,9 @@ Mỗi lần sửa `Code.gs`, cần **Deploy → Manage deployments → Edit → 
 
 ## Tuỳ chỉnh nhanh
 
-- Lời chúc gợi ý, tiêu đề thiệp, tên chủ đề: `assets/js/themes.js`.
+- Lời chúc gợi ý, tiêu đề thiệp, bảng màu, bố cục: `assets/js/themes.js`; hoạ tiết minh hoạ: `assets/js/motifs.js`.
 - Giai điệu: `assets/js/music.js` (ký hiệu nốt dạng `E5:1` = nốt Mi quãng 5, 1 phách).
 - Màu sắc & bố cục: `assets/css/ecard.css` (bảng màu Cham Terracotta, Crescent Gold, Tidal Indigo…).
-- Ảnh banner trong email khi khách không tải ảnh: `assets/img/email-<chủ đề>.jpg`.
+- Ảnh banner trong email khi khách không tải ảnh: `assets/img/email-<mã mẫu>.jpg`.
 
 Phông chữ Playfair Display và Mulish được tải từ Google Fonts nên hiển thị đúng trên mọi thiết bị.

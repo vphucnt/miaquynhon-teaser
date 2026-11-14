@@ -1,5 +1,5 @@
 /* Mia Quy Nhon — Festive eCard: canvas particle effects
- * snow (Christmas) · stars (Silent Night) · fireworks (New Year) · petals (Tết)
+ * snow · snowflakes · stars · sparkle · fireworks · confetti · lanterns
  * plus a confetti burst on opening. */
 (function () {
   'use strict';
@@ -33,7 +33,7 @@
     start(type) {
       this.type = type; this.parts = []; this.rockets = [];
       if (type === 'stars') this.seedStars();
-      const n = { snow: 140, stars: 40, petals: 46, fireworks: 0 }[type] || 0;
+      const n = { snow: 140, snowflakes: 46, stars: 40, sparkle: 90, confetti: 90, lanterns: 22, fireworks: 0 }[type] || 0;
       for (let i = 0; i < this.density(n); i++) this.parts.push(this.spawn(true));
       if (!this.running) { this.running = true; this.last = performance.now(); requestAnimationFrame(this.frame); }
     }
@@ -58,10 +58,18 @@
         case 'stars': // falling gold dust
           return { x: Math.random() * w, y: initial ? Math.random() * h : -10, r: rnd(.6, 1.8), vy: rnd(8, 22),
             sway: rnd(4, 14), ph: Math.random() * 6.3, tw: Math.random() * 6.3 };
-        case 'petals':
-          return { x: Math.random() * w, y: initial ? Math.random() * h : -20, r: rnd(5, 11), vy: rnd(25, 60),
-            sway: rnd(20, 55), ph: Math.random() * 6.3, rot: Math.random() * 6.3, vr: rnd(-1.4, 1.4),
-            flip: Math.random() * 6.3, kind: Math.random() < 0.72 ? 'flower' : 'petal' };
+        case 'snowflakes':
+          return { x: Math.random() * w, y: initial ? Math.random() * h : -20, r: rnd(4, 11), vy: rnd(16, 42),
+            sway: rnd(12, 34), ph: Math.random() * 6.3, rot: Math.random() * 6.3, vr: rnd(-.6, .6), a: rnd(.45, .95) };
+        case 'sparkle': // gold dust drifting upwards with twinkling stars
+          return { x: Math.random() * w, y: initial ? Math.random() * h : h + 10, r: rnd(.6, 2.2), vy: -rnd(8, 26),
+            sway: rnd(6, 18), ph: Math.random() * 6.3, tw: Math.random() * 6.3, star: Math.random() < .16 };
+        case 'confetti':
+          return { x: Math.random() * w, y: initial ? Math.random() * h : -12, vy: rnd(40, 90), sway: rnd(14, 40), ph: Math.random() * 6.3,
+            w: rnd(5, 9), h: rnd(3, 5), rot: Math.random() * 6.3, vr: rnd(-4, 4), col: pick([GOLD, GOLD, CORAL, TERRA, SEA, '#234E64']) };
+        case 'lanterns':
+          return { x: Math.random() * w, y: initial ? rnd(h * .2, h) : h + 30, r: rnd(7, 15), vy: -rnd(12, 26),
+            sway: rnd(6, 16), ph: Math.random() * 6.3, tw: Math.random() * 6.3 };
       }
       return null;
     }
@@ -157,7 +165,7 @@
         }
         p.y += p.vy * dt; p.ph += dt;
         const px = p.x + Math.sin(p.ph) * p.sway;
-        if (p.y > h + 20) { Object.assign(p, this.spawn(false)); continue; }
+        if ((p.vy > 0 && p.y > h + 20) || (p.vy < 0 && p.y < -40)) { Object.assign(p, this.spawn(false)); continue; }
         if (this.type === 'snow') {
           if (p.gold) {
             x.globalAlpha = 0.55 + 0.45 * Math.sin(T * 3 + p.tw); x.fillStyle = GOLD;
@@ -166,21 +174,39 @@
         } else if (this.type === 'stars') {
           x.globalAlpha = 0.4 + 0.5 * Math.sin(T * 2.5 + p.tw); x.fillStyle = '#F3DDB0';
           x.beginPath(); x.arc(px, p.y, p.r, 0, 6.283); x.fill();
-        } else if (this.type === 'petals') {
-          p.rot += p.vr * dt; p.flip += dt * 2;
-          x.save(); x.translate(px, p.y); x.rotate(p.rot); x.scale(1, 0.55 + 0.45 * Math.abs(Math.sin(p.flip)));
-          x.globalAlpha = 0.95;
-          if (p.kind === 'flower') {
-            x.fillStyle = '#F6C945';
-            for (let k = 0; k < 5; k++) {
-              x.rotate(Math.PI * 2 / 5);
-              x.beginPath(); x.ellipse(0, -p.r * 0.55, p.r * 0.36, p.r * 0.55, 0, 0, 6.283); x.fill();
-            }
-            x.fillStyle = '#D9822B'; x.beginPath(); x.arc(0, 0, p.r * 0.22, 0, 6.283); x.fill();
-          } else {
-            x.fillStyle = '#F8D66A'; x.beginPath(); x.ellipse(0, 0, p.r * 0.35, p.r * 0.6, 0, 0, 6.283); x.fill();
+        } else if (this.type === 'snowflakes') {
+          p.rot += p.vr * dt;
+          x.save(); x.translate(px, p.y); x.rotate(p.rot); x.globalAlpha = p.a;
+          x.strokeStyle = '#fff'; x.lineWidth = Math.max(1, p.r / 7); x.lineCap = 'round';
+          x.beginPath();
+          for (let k = 0; k < 6; k++) {
+            x.moveTo(0, 0); x.lineTo(0, -p.r);
+            x.moveTo(0, -p.r * .55); x.lineTo(-p.r * .25, -p.r * .78);
+            x.moveTo(0, -p.r * .55); x.lineTo(p.r * .25, -p.r * .78);
+            x.rotate(Math.PI / 3);
           }
-          x.restore();
+          x.stroke(); x.restore();
+        } else if (this.type === 'sparkle') {
+          const a = 0.35 + 0.65 * Math.abs(Math.sin(T * 2.2 + p.tw));
+          x.globalAlpha = a; x.fillStyle = p.star ? '#FFF4D6' : GOLD;
+          if (p.star) {
+            const s = p.r * 3.2 * a;
+            x.beginPath(); x.moveTo(px, p.y - s); x.quadraticCurveTo(px, p.y, px + s, p.y); x.quadraticCurveTo(px, p.y, px, p.y + s);
+            x.quadraticCurveTo(px, p.y, px - s, p.y); x.quadraticCurveTo(px, p.y, px, p.y - s); x.fill();
+          } else { x.beginPath(); x.arc(px, p.y, p.r, 0, 6.283); x.fill(); }
+        } else if (this.type === 'confetti') {
+          p.rot += p.vr * dt;
+          x.save(); x.translate(px, p.y); x.rotate(p.rot); x.scale(1, Math.sin(p.rot * 1.6));
+          x.globalAlpha = 0.9; x.fillStyle = p.col; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore();
+        } else if (this.type === 'lanterns') {
+          const fl = 0.8 + 0.2 * Math.sin(T * 6 + p.tw);
+          const g = x.createRadialGradient(px, p.y, 0, px, p.y, p.r * 3);
+          g.addColorStop(0, `rgba(255,213,138,${.45 * fl})`); g.addColorStop(1, 'rgba(255,213,138,0)');
+          x.globalAlpha = 1; x.fillStyle = g; x.beginPath(); x.arc(px, p.y, p.r * 3, 0, 6.283); x.fill();
+          x.fillStyle = '#F2A65A'; x.beginPath();
+          x.moveTo(px - p.r * .75, p.y - p.r); x.lineTo(px + p.r * .75, p.y - p.r); x.lineTo(px + p.r * .55, p.y + p.r); x.lineTo(px - p.r * .55, p.y + p.r); x.fill();
+          x.fillStyle = `rgba(255,236,190,${fl})`; x.beginPath();
+          x.moveTo(px - p.r * .4, p.y - p.r * .7); x.lineTo(px + p.r * .4, p.y - p.r * .7); x.lineTo(px + p.r * .28, p.y + p.r * .7); x.lineTo(px - p.r * .28, p.y + p.r * .7); x.fill();
         }
       }
 

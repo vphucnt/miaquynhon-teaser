@@ -1,82 +1,146 @@
-/* Mia Quy Nhon — Festive eCard: themes, copy, artwork and shared card renderer */
+/* Mia Quy Nhon — Festive eCard: occasions, templates, copy and the shared card renderer */
 (function () {
   'use strict';
 
-  const THEMES = {
-    christmas: {
-      id: 'christmas',
-      name: { vi: 'Giáng Sinh Bên Biển', en: 'Coastal Christmas' },
-      blurb: { vi: 'Tuyết lấp lánh, chuông ngân vui tươi', en: 'Glistening snow and merry bells' },
-      title: 'Merry Christmas',
-      subtitle: 'Giáng Sinh An Lành',
-      effect: 'snow',
-      song: 'jingle',
-      dark: false,
-      sky: ['#7E3D2C', '#C26A4F', '#E0967A'],
-      sea: ['#A8513B', '#5E2B1F'],
-      ornament: 'star'
-    },
-    silentnight: {
-      id: 'silentnight',
-      name: { vi: 'Đêm Thánh Vô Cùng', en: 'Silent Night' },
-      blurb: { vi: 'Trời sao tĩnh lặng, giai điệu dịu êm', en: 'A still, starlit sky and a gentle carol' },
-      title: 'Peace & Joy',
-      subtitle: 'Giáng Sinh Bình An',
-      effect: 'stars',
-      song: 'silent',
-      dark: false,
-      sky: ['#0F2533', '#234E64', '#3F6E80'],
-      sea: ['#234E64', '#0B1A24'],
-      ornament: 'moon'
-    },
-    newyear: {
-      id: 'newyear',
-      name: { vi: 'Chào Năm Mới 2027', en: 'New Year 2027' },
-      blurb: { vi: 'Pháo hoa rực rỡ trên biển đêm', en: 'Fireworks over the night sea' },
-      title: 'Happy New Year',
-      subtitle: 'Chúc Mừng Năm Mới 2027',
-      effect: 'fireworks',
-      song: 'auld',
-      dark: true,
-      sky: ['#0B1218', '#16303F', '#234E64'],
-      sea: ['#16303F', '#05090C'],
-      ornament: 'fireworks'
-    },
-    tet: {
-      id: 'tet',
-      name: { vi: 'Xuân Đinh Mùi 2027', en: 'Lunar New Year 2027' },
-      blurb: { vi: 'Hoa mai vàng, tiếng đàn ngày Tết', en: 'Golden apricot blossom and a festive melody' },
-      title: 'Chúc Mừng Năm Mới',
-      subtitle: 'Happy Lunar New Year · Xuân Đinh Mùi',
-      effect: 'petals',
-      song: 'tet',
-      dark: false,
-      sky: ['#8A2C1E', '#B5452F', '#E0967A'],
-      sea: ['#A8513B', '#6B2418'],
-      ornament: 'blossom'
-    }
+  const OCCASIONS = {
+    christmas: { id: 'christmas', name: { vi: 'Giáng Sinh', en: 'Christmas' } },
+    newyear: { id: 'newyear', name: { vi: 'Năm Mới 2027', en: 'New Year 2027' } }
   };
+
+  const SONGS_LABEL = {
+    jingle: 'Jingle Bells', silent: 'Silent Night', wewish: 'We Wish You a Merry Christmas', deck: 'Deck the Halls',
+    auld: 'Auld Lang Syne', midnight: { vi: 'Điệu valse giao thừa', en: 'Midnight Waltz' }, coastal: { vi: 'Bình minh trên biển', en: 'Coastal Dawn' }
+  };
+
+  // Light card on ivory unless stated. art = colours for the motif artwork.
+  const IVORY = { bg: '#FBF7F0', title: '#A8513B', sub: '#234E64', text: '#1A1C1B', accent: '#C9A56B' };
+  const NIGHT = { bg: '#13293A', title: '#E6CB98', sub: '#A8C8C7', text: '#F2EADF', accent: '#C9A56B', dark: true };
+  const ONYX = { bg: '#1A1C1B', title: '#E6CB98', sub: '#C9A56B', text: '#EFE4D2', accent: '#C9A56B', dark: true };
+  const INK = 'rgba(40,18,12,.8)';
+
+  const TEMPLATES = [
+    /* ------------------------------------------------------------ Christmas */
+    { id: 'c-coastal', occasion: 'christmas', layout: 'arch', name: { vi: 'Giáng Sinh bên biển', en: 'Coastal Christmas' },
+      title: 'Merry Christmas', subtitle: 'Giáng Sinh An Lành', card: IVORY, pattern: 'none',
+      stage: ['#C26A4F', '#A8513B', '#6B3223'], motif: 'towers-star',
+      art: { sky: ['#7E3D2C', '#C26A4F', '#E0967A'], sea: ['#A8513B', '#5E2B1F'], ink: INK },
+      effect: 'snow', song: 'jingle' },
+    { id: 'c-silent', occasion: 'christmas', layout: 'medallion', ring: 'stars', name: { vi: 'Đêm thánh', en: 'Silent Night' },
+      title: 'Silent Night', subtitle: 'Đêm Thánh Vô Cùng', card: Object.assign({}, IVORY, { title: '#234E64', sub: '#A8513B' }), pattern: 'stars',
+      stage: ['#3F6E80', '#234E64', '#0B1A24'], motif: 'towers-moon',
+      art: { sky: ['#0F2533', '#234E64', '#3F6E80'], sea: ['#234E64', '#0B1A24'], ink: 'rgba(8,20,28,.85)' },
+      effect: 'stars', song: 'silent' },
+    { id: 'c-pines', occasion: 'christmas', layout: 'full', name: { vi: 'Rừng thông tuyết', en: 'Snowy Pines' },
+      title: 'Season’s Greetings', subtitle: 'Mùa Lễ Hội An Vui', card: { bg: '#F7F4EE', title: '#2F4A3E', sub: '#A8513B', text: '#1A1C1B', accent: '#C9A56B' }, pattern: 'none',
+      stage: ['#4B6B5D', '#2F4A3E', '#16241E'], motif: 'pines',
+      art: { sky: ['#9FBDB8', '#CFE0DD', '#EEF3F1'], ink: '#2F4A3E', ink2: '#7E9A90' },
+      effect: 'snow', song: 'wewish' },
+    { id: 'c-baubles', occasion: 'christmas', layout: 'editorial', name: { vi: 'Quả châu vàng', en: 'Golden Baubles' },
+      title: 'Joy & Wonder', subtitle: 'Niềm Vui Mùa Giáng Sinh', card: { bg: '#7E3D2C', title: '#F3DDB0', sub: '#E0967A', text: '#F6EEE3', accent: '#C9A56B', dark: true }, pattern: 'dots',
+      stage: ['#A8513B', '#7E3D2C', '#3F1A11'], motif: 'baubles',
+      art: { sky: ['#8C4433', '#7E3D2C', '#6B3223'] },
+      effect: 'sparkle', song: 'deck' },
+    { id: 'c-wreath', occasion: 'christmas', layout: 'arch', name: { vi: 'Vòng hoa', en: 'Festive Wreath' },
+      title: 'Merry Christmas', subtitle: 'Giáng Sinh Hạnh Phúc', card: Object.assign({}, IVORY, { sub: '#2F4A3E' }), pattern: 'stripes',
+      stage: ['#4B6B5D', '#2F4A3E', '#18261F'], motif: 'wreath',
+      art: { sky: ['#F7F1E7', '#EFE4D2', '#E6D7BF'] },
+      effect: 'snowflakes', song: 'jingle', voice: 'celesta' },
+    { id: 'c-candle', occasion: 'christmas', layout: 'postcard', stamp: 'Noël', name: { vi: 'Ánh nến', en: 'Candlelight' },
+      title: 'Peace & Light', subtitle: 'Bình An & Ấm Áp', card: NIGHT, pattern: 'none',
+      stage: ['#234E64', '#13293A', '#05090C'], motif: 'candles',
+      art: { sky: ['#0B1A24', '#16303F', '#234E64'] },
+      effect: 'sparkle', song: 'silent', voice: 'harp' },
+    { id: 'c-snowflake', occasion: 'christmas', layout: 'polaroid', caption: 'Noël · 2026', name: { vi: 'Bông tuyết', en: 'Snowflake' },
+      title: 'Let It Snow', subtitle: 'Giáng Sinh An Lành', card: { bg: '#E3EEED', title: '#234E64', sub: '#A8513B', text: '#1A1C1B', accent: '#5E8D99' }, pattern: 'snow',
+      stage: ['#A8C8C7', '#5E8D99', '#234E64'], motif: 'snowflakes',
+      art: { sky: ['#234E64', '#3F6E80', '#7FA7AD'] },
+      effect: 'snowflakes', song: 'wewish', voice: 'celesta' },
+    { id: 'c-gift', occasion: 'christmas', layout: 'medallion', ring: 'wreath', name: { vi: 'Món quà', en: 'The Gift' },
+      title: 'Warmest Wishes', subtitle: 'Gửi Trao Yêu Thương', card: { bg: '#FFF6EF', title: '#A8513B', sub: '#7E3D2C', text: '#1A1C1B', accent: '#E0967A' }, pattern: 'dots',
+      stage: ['#F0B79F', '#E0967A', '#A8513B'], motif: 'gift',
+      art: { sky: ['#F6D9C9', '#EFC1AB', '#E0967A'] },
+      effect: 'snow', song: 'deck' },
+    { id: 'c-bells', occasion: 'christmas', layout: 'editorial', name: { vi: 'Chuông ngân', en: 'Ringing Bells' },
+      title: 'Merry & Bright', subtitle: 'Chuông Ngân Mùa Lễ Hội', card: { bg: '#F7F1E7', title: '#7E3D2C', sub: '#234E64', text: '#1A1C1B', accent: '#C9A56B' }, pattern: 'stars',
+      stage: ['#D8B98A', '#B08A52', '#5E4220'], motif: 'bells',
+      art: { sky: ['#EFE4D2', '#F3E9DA', '#FBF7F0'] },
+      effect: 'snow', song: 'jingle' },
+    { id: 'c-noel', occasion: 'christmas', layout: 'full', name: { vi: 'Đêm Noël', en: 'Noël Night' },
+      title: 'Joyeux Noël', subtitle: 'Giáng Sinh An Lành', card: { bg: '#0F2533', title: '#F3DDB0', sub: '#E0967A', text: '#EFE4D2', accent: '#C9A56B', dark: true }, pattern: 'none',
+      stage: ['#2F4A3E', '#1E3329', '#0D1712'], motif: 'pines-night',
+      art: { sky: ['#0F2533', '#234E64', '#3F6E80'], ink: '#1E3329', ink2: '#3F5E54' },
+      effect: 'snow', song: 'silent' },
+
+    /* ------------------------------------------------------------ New Year 2027 */
+    { id: 'n-seafire', occasion: 'newyear', layout: 'arch', name: { vi: 'Pháo hoa trên biển', en: 'Fireworks by the Sea' },
+      title: 'Happy New Year', subtitle: 'Chúc Mừng Năm Mới 2027', card: NIGHT, pattern: 'none',
+      stage: ['#234E64', '#102330', '#05090C'], motif: 'towers-fireworks',
+      art: { sky: ['#0B1218', '#16303F', '#234E64'], sea: ['#16303F', '#05090C'], ink: 'rgba(5,9,12,.85)' },
+      effect: 'fireworks', song: 'auld' },
+    { id: 'n-2027', occasion: 'newyear', layout: 'editorial', name: { vi: 'Xin chào 2027', en: 'Hello 2027' },
+      title: 'Hello 2027', subtitle: 'Xin Chào Năm Mới', card: IVORY, pattern: 'confetti',
+      stage: ['#3F6E80', '#234E64', '#0F2533'], motif: 'numerals',
+      art: { sky: ['#16303F', '#234E64', '#16303F'] },
+      effect: 'confetti', song: 'midnight' },
+    { id: 'n-cheers', occasion: 'newyear', layout: 'full', name: { vi: 'Nâng ly', en: 'Cheers' },
+      title: 'Cheers to 2027', subtitle: 'Nâng Ly Chào Năm Mới', card: ONYX, pattern: 'none',
+      stage: ['#3A332B', '#1A1C1B', '#000000'], motif: 'champagne',
+      art: { sky: ['#1A1C1B', '#2A2622', '#1A1C1B'] },
+      effect: 'sparkle', song: 'auld', voice: 'celesta' },
+    { id: 'n-midnight', occasion: 'newyear', layout: 'medallion', ring: 'rays', name: { vi: 'Khoảnh khắc giao thừa', en: 'Midnight' },
+      title: 'At the Stroke of Midnight', subtitle: 'Khoảnh Khắc Giao Thừa', card: Object.assign({}, IVORY, { title: '#234E64', sub: '#A8513B' }), pattern: 'stars',
+      stage: ['#3F6E80', '#234E64', '#0B1A24'], motif: 'clock',
+      art: { sky: ['#0F2533', '#16303F', '#234E64'] },
+      effect: 'stars', song: 'midnight' },
+    { id: 'n-deco', occasion: 'newyear', layout: 'editorial', name: { vi: 'Hoàng kim', en: 'Golden Deco' },
+      title: 'A Golden Year', subtitle: 'Năm Mới Hoàng Kim 2027', card: ONYX, pattern: 'deco',
+      stage: ['#4A3D2A', '#1A1C1B', '#000000'], motif: 'deco',
+      art: { sky: ['#1A1C1B', '#23201C', '#1A1C1B'] },
+      effect: 'sparkle', song: 'auld', voice: 'harp' },
+    { id: 'n-confetti', occasion: 'newyear', layout: 'polaroid', caption: '01 · 01 · 2027', name: { vi: 'Hoa giấy', en: 'Confetti' },
+      title: 'Let’s Celebrate', subtitle: 'Chúc Mừng Năm Mới', card: { bg: '#FCEDE5', title: '#A8513B', sub: '#234E64', text: '#1A1C1B', accent: '#E0967A' }, pattern: 'confetti',
+      stage: ['#F0B79F', '#E0967A', '#A8513B'], motif: 'confetti',
+      art: { sky: ['#FBF7F0', '#FBF7F0', '#F3E9DA'] },
+      effect: 'confetti', song: 'midnight', voice: 'celesta' },
+    { id: 'n-lanterns', occasion: 'newyear', layout: 'arch', name: { vi: 'Đèn trời', en: 'Sky Lanterns' },
+      title: 'Make a Wish', subtitle: 'Ước Nguyện Năm Mới', card: { bg: '#FFF8EC', title: '#A8513B', sub: '#234E64', text: '#1A1C1B', accent: '#C9A56B' }, pattern: 'none',
+      stage: ['#7E3D2C', '#3E2A33', '#13293A'], motif: 'lanterns',
+      art: { sky: ['#1E3A4C', '#6E3A33', '#D98C6A'], sea: ['#3E2A33', '#13293A'] },
+      effect: 'lanterns', song: 'coastal' },
+    { id: 'n-boats', occasion: 'newyear', layout: 'full', name: { vi: 'Thuyền thúng', en: 'Basket Boats' },
+      title: 'New Year by the Sea', subtitle: 'Đón Năm Mới Bên Biển', card: { bg: '#0F2533', title: '#E6CB98', sub: '#A8C8C7', text: '#F2EADF', accent: '#C9A56B', dark: true }, pattern: 'none',
+      stage: ['#234E64', '#0F2533', '#05090C'], motif: 'boats',
+      art: { sky: ['#05090C', '#0F2533', '#234E64'], sea: ['#16303F', '#05090C'] },
+      effect: 'fireworks', song: 'coastal', voice: 'harp' },
+    { id: 'n-sunrise', occasion: 'newyear', layout: 'postcard', stamp: '2027', name: { vi: 'Bình minh đầu năm', en: 'First Sunrise' },
+      title: 'A Bright New Year', subtitle: 'Năm Mới Rạng Rỡ', card: { bg: '#FFF8F2', title: '#A8513B', sub: '#234E64', text: '#1A1C1B', accent: '#C9A56B' }, pattern: 'none',
+      stage: ['#F3C9A8', '#E0967A', '#A8513B'], motif: 'towers-sunrise',
+      art: { sky: ['#C9765A', '#E8A88A', '#FBE3C6'], sea: ['#C26A4F', '#7E3D2C'], ink: 'rgba(60,25,15,.78)' },
+      effect: 'sparkle', song: 'coastal' },
+    { id: 'n-sparklers', occasion: 'newyear', layout: 'medallion', ring: 'rays', name: { vi: 'Pháo bông', en: 'Sparklers' },
+      title: 'Shine Bright', subtitle: 'Năm Mới Lấp Lánh', card: { bg: '#A8513B', title: '#F3DDB0', sub: '#EFE4D2', text: '#FBF4EA', accent: '#E6CB98', dark: true }, pattern: 'dots',
+      stage: ['#C26A4F', '#7E3D2C', '#3F1A11'], motif: 'sparklers',
+      art: { sky: ['#1A1C1B', '#2B1A15', '#1A1C1B'] },
+      effect: 'sparkle', song: 'auld' }
+  ];
+
+  const BY_ID = Object.fromEntries(TEMPLATES.map(t => [t.id, t]));
+  // Links sent with earlier theme names keep working
+  const ALIAS = { christmas: 'c-coastal', silentnight: 'c-silent', newyear: 'n-seafire', tet: 'n-seafire' };
+  const getTemplate = tid => BY_ID[tid] || BY_ID[ALIAS[tid]] || TEMPLATES[0];
 
   const MESSAGES = {
     christmas: [
       { vi: 'Chúc bạn một mùa Giáng Sinh ấm áp, an lành bên những người thân yêu.', en: 'Wishing you a warm and peaceful Christmas with the people you love.' },
       { vi: 'Mong mùa lễ hội này mang đến cho bạn thật nhiều niềm vui và khoảnh khắc đáng nhớ.', en: 'May this festive season bring you joy and moments worth remembering.' },
-      { vi: 'Gửi bạn hương biển, ánh nến và những điều tốt đẹp nhất mùa Giáng Sinh.', en: 'Sending you sea air, candlelight and every good thing this Christmas.' }
-    ],
-    silentnight: [
-      { vi: 'Chúc bạn một đêm Giáng Sinh tĩnh lặng và bình an.', en: 'Wishing you a still and peaceful Christmas night.' },
-      { vi: 'Mong ánh sao đêm nay soi sáng mọi ước nguyện của bạn.', en: 'May tonight’s stars light the way to every wish you hold.' },
+      { vi: 'Gửi bạn hương biển, ánh nến và những điều tốt đẹp nhất mùa Giáng Sinh.', en: 'Sending you sea air, candlelight and every good thing this Christmas.' },
       { vi: 'Bình an trong tim, ấm áp trong nhà — Giáng Sinh an lành.', en: 'Peace in your heart and warmth in your home — Merry Christmas.' }
     ],
     newyear: [
       { vi: 'Chúc bạn một năm 2027 rạng rỡ, khỏe mạnh và trọn vẹn.', en: 'Wishing you a radiant, healthy and fulfilling 2027.' },
       { vi: 'Năm mới, khởi đầu mới — mong mọi điều tốt đẹp sẽ đến với bạn.', en: 'A new year, a fresh start — may every good thing find its way to you.' },
-      { vi: 'Cảm ơn bạn vì một năm đã qua. Hẹn gặp bạn ở những hành trình mới.', en: 'Thank you for the year behind us. Here’s to new journeys together.' }
-    ],
-    tet: [
-      { vi: 'Chúc Mừng Năm Mới — An khang thịnh vượng, vạn sự như ý.', en: 'Happy Lunar New Year — peace, prosperity and every wish fulfilled.' },
-      { vi: 'Xuân Đinh Mùi an lành, gia đình sum vầy, tràn đầy hạnh phúc.', en: 'A gentle spring, a family gathered, and a year full of happiness.' },
-      { vi: 'Chúc bạn và gia đình một năm mới sức khỏe dồi dào, may mắn tràn đầy.', en: 'Wishing you and your family good health and good fortune in the year ahead.' }
+      { vi: 'Cảm ơn bạn vì một năm đã qua. Hẹn gặp bạn ở những hành trình mới.', en: 'Thank you for the year behind us. Here’s to new journeys together.' },
+      { vi: 'Nâng ly chào năm mới — chúc bạn và gia đình an khang, hạnh phúc.', en: 'Raising a glass to the year ahead — health and happiness to you and yours.' }
     ]
   };
 
@@ -87,11 +151,11 @@
       heroTitle: 'Gửi một lời chúc, từ bờ biển Quy Nhơn',
       heroLede: 'Chọn tấm thiệp, thêm khoảnh khắc của riêng bạn và gửi đi lời chúc ấm áp — kèm hiệu ứng và giai điệu mùa lễ hội.',
       step1: 'Chọn thiệp', step2: 'Ảnh của bạn', step3: 'Lời chúc', step4: 'Gửi thiệp',
+      templatesCount: 'mẫu thiệp',
       uploadTitle: 'Kéo thả hoặc chọn ảnh',
       uploadHint: 'JPG, PNG hoặc HEIC · ảnh sẽ được tối ưu tự động',
-      uploadNone: 'Không có ảnh? Thiệp sẽ dùng hình minh hoạ của chủ đề.',
+      uploadNone: 'Không có ảnh? Thiệp sẽ dùng hình minh hoạ của mẫu.',
       photoPos: 'Căn chỉnh ảnh', removePhoto: 'Xoá ảnh',
-      toName: 'Tên người nhận', toNamePh: 'Ví dụ: Lan Anh',
       message: 'Lời chúc', messagePh: 'Viết đôi lời từ trái tim…',
       suggestions: 'Gợi ý lời chúc', fromName: 'Tên của bạn', fromNamePh: 'Ví dụ: Minh',
       fromEmail: 'Email của bạn', recipients: 'Email người nhận',
@@ -109,7 +173,6 @@
       sentBody: 'Lời chúc của bạn đang trên đường đến với người nhận. Cảm ơn bạn đã chia sẻ mùa lễ hội cùng Mia Quy Nhơn.',
       viewCard: 'Xem thiệp đã gửi', another: 'Gửi thêm thiệp',
       chars: 'ký tự',
-      // viewer
       fromLabel: 'Từ', toLabel: 'Gửi',
       envelopeFor: 'Một tấm thiệp dành cho bạn',
       envelopeFrom: 'từ',
@@ -127,11 +190,11 @@
       heroTitle: 'Send a greeting from the Quy Nhơn coast',
       heroLede: 'Choose a card, add a moment of your own and send a warm wish — complete with seasonal motion and music.',
       step1: 'Choose a card', step2: 'Your photo', step3: 'Your message', step4: 'Send',
+      templatesCount: 'designs',
       uploadTitle: 'Drag & drop or choose a photo',
       uploadHint: 'JPG, PNG or HEIC · optimised automatically',
-      uploadNone: 'No photo? The card will use the theme illustration.',
+      uploadNone: 'No photo? The card will use its own illustration.',
       photoPos: 'Photo position', removePhoto: 'Remove photo',
-      toName: 'Recipient’s name', toNamePh: 'e.g. Charlotte',
       message: 'Message', messagePh: 'A few words from the heart…',
       suggestions: 'Suggested wishes', fromName: 'Your name', fromNamePh: 'e.g. James',
       fromEmail: 'Your email', recipients: 'Recipient email',
@@ -175,93 +238,45 @@
       { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  /* ---------- Coastal artwork: Tháp Đôi (Twin Cham Towers) at the shoreline ---------- */
-  function tower(x, base, s, fill) {
-    // A stepped Cham tower silhouette, centred on x, standing on `base`, scaled by s.
-    const p = [[-30, 0], [-30, -80], [-24, -80], [-24, -100], [-18, -100], [-18, -118], [-12, -118],
-      [-12, -134], [-5, -134], [0, -150], [5, -134], [12, -134], [12, -118], [18, -118], [18, -100],
-      [24, -100], [24, -80], [30, -80], [30, 0]];
-    const pts = p.map(([a, b]) => `${(x + a * s).toFixed(1)},${(base + b * s).toFixed(1)}`).join(' ');
-    const door = `M${x - 7 * s},${base} v${-26 * s} q${7 * s},${-12 * s} ${14 * s},0 v${26 * s}z`;
-    return `<polygon points="${pts}" fill="${fill}"/><path d="${door}" fill="rgba(0,0,0,.28)"/>`;
+  function songLabel(t, lang) {
+    const s = SONGS_LABEL[t.song];
+    return typeof s === 'string' ? s : s[lang || 'vi'];
   }
 
-  function ornament(t) {
-    switch (t.ornament) {
-      case 'star':
-        return `<g fill="#F3DDB0"><path d="M300 52 l5 14 15 1 -12 9 4 15 -12-8 -12 8 4-15 -12-9 15-1z" opacity=".95"/>
-          <circle cx="300" cy="72" r="26" fill="#F3DDB0" opacity=".12"/></g>
-          ${[[60, 40], [110, 90], [190, 30], [350, 110], [370, 40], [30, 120], [240, 70]].map(([x, y]) =>
-            `<circle cx="${x}" cy="${y}" r="2.2" fill="#fff" opacity=".85"/>`).join('')}`;
-      case 'moon':
-        return `<path d="M318 40 A26 26 0 1 0 334 84 A22 22 0 1 1 318 40z" fill="#F3E6C8"/><circle cx="312" cy="64" r="36" fill="#F3E6C8" opacity=".07"/>
-          ${[[40, 30], [80, 80], [140, 40], [200, 22], [250, 90], [360, 120], [20, 110], [170, 110], [380, 30]].map(([x, y], i) =>
-            `<circle cx="${x}" cy="${y}" r="${i % 3 ? 1.3 : 2}" fill="#fff" opacity="${i % 2 ? .6 : .95}"/>`).join('')}`;
-      case 'fireworks': {
-        const burst = (cx, cy, r, c) => Array.from({ length: 14 }, (_, i) => {
-          const a = i / 14 * Math.PI * 2;
-          return `<line x1="${cx + Math.cos(a) * r * .35}" y1="${cy + Math.sin(a) * r * .35}" x2="${cx + Math.cos(a) * r}" y2="${cy + Math.sin(a) * r}" stroke="${c}" stroke-width="2" stroke-linecap="round"/>`;
-        }).join('') + `<circle cx="${cx}" cy="${cy}" r="3" fill="${c}"/>`;
-        return burst(110, 70, 40, '#C9A56B') + burst(290, 55, 32, '#E0967A') + burst(220, 110, 22, '#A8C8C7');
-      }
-      case 'blossom': {
-        const flower = (x, y, r) => `<g transform="translate(${x} ${y})">${[0, 72, 144, 216, 288].map(a =>
-          `<ellipse cx="0" cy="${-r}" rx="${r * .62}" ry="${r}" fill="#F6C945" transform="rotate(${a})"/>`).join('')}
-          <circle r="${r * .45}" fill="#D9822B"/></g>`;
-        return `<circle cx="300" cy="80" r="34" fill="#F4D58D" opacity=".55"/>
-          <path d="M400 10 C 340 40, 320 60, 270 70 M330 48 C 320 30, 300 22, 285 20 M360 30 C 370 60, 360 80, 345 95"
-            stroke="#4A2A1E" stroke-width="4" fill="none" stroke-linecap="round"/>
-          ${flower(272, 70, 9)}${flower(300, 58, 8)}${flower(286, 22, 7)}${flower(345, 95, 8)}${flower(330, 46, 6)}${flower(362, 62, 7)}`;
-      }
-    }
-    return '';
-  }
+  const artSVG = tid => { const t = getTemplate(tid); return window.MQN.motifSVG(t.motif, t.art); };
 
-  function artSVG(themeId) {
-    const t = THEMES[themeId] || THEMES.christmas;
-    const id = 'a' + Math.random().toString(36).slice(2, 8);
-    return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="${t.sky[0]}"/><stop offset=".65" stop-color="${t.sky[1]}"/><stop offset="1" stop-color="${t.sky[2]}"/>
-        </linearGradient>
-        <linearGradient id="${id}w" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="${t.sea[0]}"/><stop offset="1" stop-color="${t.sea[1]}"/>
-        </linearGradient>
-      </defs>
-      <rect width="400" height="300" fill="url(#${id}s)"/>
-      ${ornament(t)}
-      <path d="M0 214 Q 80 200 150 210 T 300 206 T 400 210 V 230 H0z" fill="rgba(0,0,0,.18)"/>
-      ${tower(150, 232, .95, 'rgba(40,18,12,.78)')}${tower(232, 232, .72, 'rgba(40,18,12,.7)')}
-      <rect y="230" width="400" height="70" fill="url(#${id}w)"/>
-      <line x1="0" y1="230.5" x2="400" y2="230.5" stroke="#C9A56B" stroke-width="1.2" opacity=".85"/>
-      <g stroke="#C9A56B" stroke-width="1" fill="none" opacity=".55" stroke-linecap="round">
-        <path d="M30 252 q12 -5 24 0 t24 0"/><path d="M150 266 q12 -5 24 0 t24 0 t24 0"/>
-        <path d="M290 248 q12 -5 24 0 t24 0"/><path d="M70 284 q12 -5 24 0 t24 0"/><path d="M260 286 q12 -5 24 0"/>
-      </g>
-      <g opacity=".35" fill="#C9A56B"><rect x="140" y="236" width="20" height="2"/><rect x="146" y="242" width="10" height="2"/><rect x="226" y="236" width="14" height="2"/></g>
-    </svg>`;
-  }
-
-  /* ---------- Shared card renderer (builder preview + viewer) ---------- */
+  /* ---------- Shared card renderer (builder preview, thumbnails, viewer) ---------- */
   function renderCard(el, data, opts) {
     opts = opts || {};
-    const t = THEMES[data.theme] || THEMES.christmas;
-    const lang = data.lang || 'vi';
-    const L = I18N[lang];
+    const t = getTemplate(data.theme);
+    const L = I18N[data.lang === 'en' ? 'en' : 'vi'];
+    const c = t.card;
     const pos = Number.isFinite(+data.photoPosY) ? +data.photoPosY : 50;
     const media = data.photo
       ? `<img src="${esc(data.photo)}" alt="" style="object-position:50% ${pos}%">`
-      : artSVG(t.id);
-    const logo = (opts.assetBase || '') + (t.dark ? 'assets/img/logo-white.png' : 'assets/img/logo-terracotta.png');
-    el.className = `ecard ecard--${t.id}${t.dark ? ' ecard--dark' : ''}`;
+      : window.MQN.motifSVG(t.motif, t.art);
+    const logo = (opts.assetBase || '') + (c.dark ? 'assets/img/logo-white.png' : 'assets/img/logo-terracotta.png');
+
+    let extra = '';
+    if (t.layout === 'medallion') extra = window.MQN.ringSVG(t.ring, c.accent);
+    if (t.layout === 'full') extra = '<div class="ecard__veil"></div>';
+    if (t.layout === 'polaroid') extra = `<p class="ecard__caption">${esc(t.caption || '')}</p>`;
+    if (t.layout === 'postcard') extra = `<div class="ecard__stamp"><span>${esc(t.stamp || '')}</span><small>Quy Nhơn</small></div>
+      <svg class="ecard__postmark" viewBox="0 0 120 60" aria-hidden="true"><circle cx="30" cy="30" r="22" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="30" cy="30" r="17" fill="none" stroke="currentColor" stroke-width=".8"/>
+      <path d="M58 18 q8 -6 16 0 t16 0 t16 0 M58 30 q8 -6 16 0 t16 0 t16 0 M58 42 q8 -6 16 0 t16 0 t16 0" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`;
+
+    el.className = `ecard ecard--${t.layout}${c.dark ? ' ecard--dark' : ''}${opts.thumb ? ' ecard--thumb' : ''}`;
+    el.setAttribute('data-template', t.id);
+    el.style.cssText = `--c-bg:${c.bg};--c-title:${c.title};--c-sub:${c.sub};--c-text:${c.text};--c-accent:${c.accent};--pattern:${window.MQN.patternURI(t.pattern, c.accent)}`;
     el.innerHTML = `
       <div class="ecard__corner ecard__corner--tl"></div><div class="ecard__corner ecard__corner--br"></div>
-      <div class="ecard__arch">${media}</div>
-      <div class="ecard__body">
+      <div class="ecard__media"><div class="ecard__arch">${media}</div>${extra}</div>
+      <div class="ecard__head">
         <h1 class="ecard__title">${esc(t.title)}</h1>
         <p class="ecard__subtitle">${esc(t.subtitle)}</p>
         <div class="ecard__rule"><span></span></div>
+      </div>
+      <div class="ecard__text">
         ${data.toName ? `<p class="ecard__to">${esc(L.toLabel)} ${esc(data.toName)},</p>` : ''}
         <p class="ecard__message" data-message>${opts.typewriter ? '' : esc(data.message || '')}</p>
         ${data.fromName ? `<p class="ecard__from">— ${esc(data.fromName)}</p>` : ''}
@@ -273,5 +288,6 @@
     return el;
   }
 
-  window.MQN = { THEMES, MESSAGES, I18N, detectLang, esc, artSVG, renderCard };
+  window.MQN = window.MQN || {};
+  Object.assign(window.MQN, { OCCASIONS, TEMPLATES, getTemplate, MESSAGES, I18N, detectLang, esc, artSVG, songLabel, renderCard });
 })();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <script>/* Deep links: #demo-<theme> or #preview open the card viewer */
-    if (/^#(demo-[a-z]+|preview)$/.test(location.hash)) location.replace('card.html' + location.hash);</script>
+    if (/^#(demo-[a-z0-9-]+|preview)$/.test(location.hash)) location.replace('card.html' + location.hash);</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gửi Thiệp Mùa Lễ Hội · Festive eCards — Mia Quy Nhon</title>
   <meta name="description" content="Gửi thiệp Giáng Sinh và Năm Mới từ Mia Quy Nhon | Fusion Collection. Send a festive eCard from the Quy Nhơn coast.">
@@ -37,7 +37,8 @@
         <!-- Step 1 -->
         <section class="step">
           <div class="step__head"><span class="step__num">01</span><h2 class="step__title" data-i18n="step1"></h2></div>
-          <div class="themes" id="themes" role="radiogroup"></div>
+          <div class="occasions" id="occasions" role="tablist"></div>
+          <div class="templates" id="templates" role="radiogroup"></div>
         </section>
 
         <!-- Step 2 -->
@@ -112,6 +113,7 @@
   <footer class="site-foot"><em>Heritage of the Coast</em><br><span data-i18n="footer"></span></footer>
 
   <script src="assets/js/config.js"></script>
+  <script src="assets/js/motifs.js"></script>
   <script src="assets/js/themes.js"></script>
   <script src="assets/js/builder.js"></script>
 </body>

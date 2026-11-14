@@ -1,15 +1,15 @@
 /* Mia Quy Nhon — Festive eCard: builder page */
 (function () {
   'use strict';
-  const { THEMES, MESSAGES, I18N, detectLang, esc, artSVG, renderCard } = window.MQN;
+  const { OCCASIONS, TEMPLATES, getTemplate, MESSAGES, I18N, detectLang, esc, songLabel, renderCard } = window.MQN;
   const CFG = window.ECARD_CONFIG || {};
   const $ = s => document.querySelector(s);
-  const SONG_LABEL = { christmas: '♪ Jingle Bells', silentnight: '♪ Silent Night', newyear: '♪ Auld Lang Syne', tet: '♪ Giai điệu Xuân · Spring melody' };
   const PREVIEW_KEY = 'mqn-ecard-preview';
 
   const state = {
     lang: detectLang(),
-    theme: 'christmas',
+    occasion: 'christmas',
+    theme: 'c-coastal',
     photo: '',
     photoPosY: 50,
     message: '',
@@ -26,27 +26,43 @@
     document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
     document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang)));
     try { localStorage.setItem('mqn-ecard-lang', state.lang); } catch (e) { /* ignore */ }
-    renderThemes(); renderChips(); renderRecipients(); update();
+    renderOccasions(); renderTemplates(); renderChips(); renderRecipients(); update();
   }
   document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => { state.lang = b.dataset.lang; applyLang(); }));
 
-  /* ---------- Step 1: themes ---------- */
-  function renderThemes() {
-    $('#themes').innerHTML = Object.values(THEMES).map(th => `
-      <button type="button" class="theme" role="radio" aria-checked="${th.id === state.theme}" data-theme="${th.id}">
-        <div class="theme__art">${artSVG(th.id)}</div>
-        <div class="theme__txt">
-          <span class="theme__name">${esc(th.name[state.lang])}</span>
-          <span class="theme__blurb">${esc(th.blurb[state.lang])}</span>
-          <span class="theme__song">${esc(SONG_LABEL[th.id])}</span>
-        </div>
-      </button>`).join('');
+  /* ---------- Step 1: occasion + template ---------- */
+  const stageBg = t => `radial-gradient(120% 90% at 50% 0%, ${t.stage[0]} 0%, ${t.stage[1]} 38%, ${t.stage[2]} 100%)`;
+  const sample = () => (MESSAGES[state.occasion][0] || {})[state.lang] || '';
+
+  function renderOccasions() {
+    $('#occasions').innerHTML = Object.values(OCCASIONS).map(o => {
+      const n = TEMPLATES.filter(t => t.occasion === o.id).length;
+      return `<button type="button" class="occasion" role="tab" data-occasion="${o.id}" aria-selected="${o.id === state.occasion}">${esc(o.name[state.lang])}<small>${n} ${esc(t('templatesCount'))}</small></button>`;
+    }).join('');
   }
-  $('#themes').addEventListener('click', e => {
-    const b = e.target.closest('.theme'); if (!b) return;
+  $('#occasions').addEventListener('click', e => {
+    const b = e.target.closest('.occasion'); if (!b || b.dataset.occasion === state.occasion) return;
+    state.occasion = b.dataset.occasion;
+    state.theme = TEMPLATES.find(x => x.occasion === state.occasion).id;
+    renderOccasions(); renderTemplates(); renderChips(); update();
+  });
+
+  function renderTemplates() {
+    const list = TEMPLATES.filter(x => x.occasion === state.occasion);
+    $('#templates').innerHTML = list.map(x => `
+      <button type="button" class="tpl" role="radio" aria-checked="${x.id === state.theme}" data-theme="${x.id}" aria-label="${esc(x.name[state.lang])}">
+        <div class="tpl__card" style="background:${stageBg(x)}"><div class="tpl__mini"></div></div>
+        <span class="tpl__name">${esc(x.name[state.lang])}</span>
+        <span class="tpl__song">♪ ${esc(songLabel(x, state.lang))}</span>
+      </button>`).join('');
+    $('#templates').querySelectorAll('.tpl').forEach(b =>
+      renderCard(b.querySelector('.tpl__mini'), { theme: b.dataset.theme, lang: state.lang, message: sample() }, { thumb: true }));
+  }
+  $('#templates').addEventListener('click', e => {
+    const b = e.target.closest('.tpl'); if (!b) return;
     state.theme = b.dataset.theme;
-    document.querySelectorAll('.theme').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-    renderChips(); update();
+    document.querySelectorAll('.tpl').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+    update();
   });
 
   /* ---------- Step 2: photo ---------- */
@@ -87,12 +103,12 @@
   const max = CFG.maxMessage || 400;
   $('#message').maxLength = max; $('#max').textContent = max;
   function renderChips() {
-    $('#chips').innerHTML = (MESSAGES[state.theme] || []).map((m, i) =>
+    $('#chips').innerHTML = (MESSAGES[state.occasion] || []).map((m, i) =>
       `<button type="button" class="chip" data-i="${i}">${esc(m[state.lang])}</button>`).join('');
   }
   $('#chips').addEventListener('click', e => {
     const b = e.target.closest('.chip'); if (!b) return;
-    const m = MESSAGES[state.theme][+b.dataset.i];
+    const m = MESSAGES[state.occasion][+b.dataset.i];
     const txt = state.lang === 'vi' ? `${m.vi}\n${m.en}` : `${m.en}\n${m.vi}`;
     $('#message').value = txt.slice(0, max); state.message = $('#message').value; update();
   });
@@ -134,9 +150,9 @@
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => {
       const d = cardData();
-      if (!d.message) d.message = (MESSAGES[state.theme][0] || {})[state.lang] || '';
+      if (!d.message) d.message = sample();
       renderCard($('#card'), d);
-      $('#stage').className = `preview__stage stage--${state.theme}`;
+      $('#stage').style.background = stageBg(getTemplate(state.theme));
     });
   }
 
@@ -147,7 +163,7 @@
 
   $('#previewBtn').addEventListener('click', () => {
     const d = cardData();
-    if (!d.message) d.message = (MESSAGES[state.theme][0] || {})[state.lang] || '';
+    if (!d.message) d.message = sample();
     let json = JSON.stringify(d);
     try { localStorage.setItem(PREVIEW_KEY, json); } catch (e) {
       try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(Object.assign({}, d, { photo: '' }))); } catch (e2) { /* storage blocked */ }
@@ -198,12 +214,12 @@
     $('#done').hidden = true; $('#form').hidden = false;
     state.recipients = [{ name: '', email: '' }]; $('#consent').checked = false;
     renderRecipients(); update();
-    $('#themes').scrollIntoView({ behavior: 'smooth' });
+    $('#templates').scrollIntoView({ behavior: 'smooth' });
   });
 
   /* ---------- Init ---------- */
   const qp = new URLSearchParams(location.search);
-  if (THEMES[qp.get('theme')]) state.theme = qp.get('theme');
+  if (qp.get('theme')) { const tp = getTemplate(qp.get('theme')); state.theme = tp.id; state.occasion = tp.occasion; }
   if (CFG.apiUrl) $('#configNotice').remove(); else $('#configNotice').classList.add('is-on');
   applyLang();
 })();
