@@ -58,6 +58,7 @@
     if (env.classList.contains('is-open')) return;
     const theme = getTemplate(data.theme);
     env.classList.add('is-open');
+    document.body.classList.add('is-open');
     music.chime();
     setTimeout(() => music.play(theme.song, theme.voice), 700);
     $('#sound').hidden = false; $('#sound').innerHTML = ICON_ON;
